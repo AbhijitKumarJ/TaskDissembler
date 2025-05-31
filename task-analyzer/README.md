@@ -77,7 +77,7 @@ src/app/
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](../../LICENSE) file in the main project directory for details.
 
 For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
 
