@@ -59,3 +59,7 @@ task-analyzer/
 - **Models within `models/`:** TypeScript interfaces defining the structure of tasks, LLM configurations, etc.
 
 This technical description provides a high-level overview. For more detailed information, direct inspection of the `task-analyzer` source code is recommended.
+
+## License
+
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](../../LICENSE) file in the root directory for the full license text.
