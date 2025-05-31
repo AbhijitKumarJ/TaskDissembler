@@ -1,0 +1,86 @@
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+          <h2 class="h5 mb-0"><i class="fas fa-cog me-2"></i>LLM Provider Settings</h2>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="saveSettings()">
+            <div class="mb-4">
+              <h5 class="mb-3 text-muted">Provider Configuration</h5>
+              <div class="mb-3">
+                <label for="provider" class="form-label">LLM Provider</label>
+                <select 
+                  class="form-select" 
+                  id="provider" 
+                  [(ngModel)]="config.provider" 
+                  name="provider" 
+                  required>
+                  <option value="openai">OpenAI</option>
+                  <option value="groq">Groq</option>
+                  <option value="ollama">Ollama</option>
+                  <option value="custom">Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="model" class="form-label">Model Name</label>
+                <input type="text" class="form-control" id="model" 
+                       [(ngModel)]="config.model" name="model" required>
+                <div class="form-text">e.g., gpt-4, llama2, etc.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="apiKey" class="form-label">API Key</label>
+                <div class="input-group">
+                  <input [type]="showApiKey ? 'text' : 'password'" class="form-control" id="apiKey" 
+                         [(ngModel)]="config.apiKey" name="apiKey" [required]="config.provider !== 'ollama'">
+                  <button class="btn btn-outline-secondary" type="button" (click)="toggleApiKeyVisibility()">
+                    <i class="fas" [class.fa-eye]="!showApiKey" [class.fa-eye-slash]="showApiKey"></i>
+                  </button>
+                </div>
+                <div class="form-text" *ngIf="config.provider !== 'ollama'">API key is required for this provider.</div>
+                <div class="form-text" *ngIf="config.provider === 'ollama'">API key is not required for Ollama.</div>
+              </div>
+
+              <div class="mb-3" *ngIf="config.provider === 'custom'">
+                <label for="baseUrl" class="form-label">API Endpoint</label>
+                <input type="url" class="form-control" id="baseUrl" 
+                       [(ngModel)]="config.baseUrl" name="baseUrl">
+                <div class="form-text">Enter the full URL of your custom API endpoint</div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="temperature" class="form-label">Temperature: {{ config.temperature }}</label>
+                  <input type="range" class="form-range" id="temperature" 
+                         [(ngModel)]="config.temperature" name="temperature"
+                         min="0" max="1" step="0.1">
+                  <div class="form-text">Lower values = more deterministic, higher values = more creative</div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="maxTokens" class="form-label">Max Tokens</label>
+                  <input type="number" class="form-control" id="maxTokens" 
+                         [(ngModel)]="config.maxTokens" name="maxTokens"
+                         min="100" max="8000">
+                  <div class="form-text">Maximum number of tokens in the response</div>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-secondary" (click)="resetForm()">
+                  Reset
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+.task-tree {
+  background-color: rgba(13, 110, 253, 0.03);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  min-height: 200px;
+  border: 1px dashed rgba(13, 110, 253, 0.2);
+}
+
+/* Animation for when a new node is added */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.task-tree > app-task-node {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .task-tree {
+    padding: 1rem;
+  }
+}

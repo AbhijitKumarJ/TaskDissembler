@@ -1,0 +1,197 @@
+.task-node {
+  position: relative;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+  
+  .node-content {
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+  }
+  
+  // Color palette with better contrast and accessibility
+  $depth-colors: (
+    0: #e3f2fd, // Light blue
+    1: #e8f5e9, // Light green
+    2: #fff8e1, // Light amber
+    3: #f3e5f5, // Light purple
+    4: #fce4ec  // Light pink
+  );
+  
+  $border-colors: (
+    0: #1565c0, // Darker blue
+    1: #2e7d32, // Green
+    2: #ff8f00, // Amber
+    3: #6a1b9a, // Darker purple
+    4: #ad1457  // Darker pink
+  );
+  
+  // Text colors for better contrast
+  $text-colors: (
+    0: #0d47a1, // Dark blue
+    1: #1b5e20, // Dark green
+    2: #e65100, // Dark amber
+    3: #4a148c, // Dark purple
+    4: #880e4f  // Dark pink
+  );
+  
+  // Generate depth-based styles
+  @for $i from 0 through 4 {
+    &.depth-#{$i} .node-content {
+      background-color: map-get($depth-colors, $i);
+      border-left: 4px solid map-get($border-colors, $i);
+      color: darken(map-get($text-colors, $i), 10%);
+      
+      h5, .text-muted {
+        color: darken(map-get($text-colors, $i), 10%);
+      }
+      
+      .badge {
+        background-color: rgba(map-get($border-colors, $i), 0.15);
+        color: darken(map-get($border-colors, $i), 10%);
+      }
+      
+      &:hover {
+        background-color: darken(map-get($depth-colors, $i), 3%);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      }
+    }
+  }
+  
+  // Hover effect
+  .node-content {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    &:hover {
+      transform: translateX(2px);
+    }
+  }
+  
+  // Expanded state
+  &.expanded > .node-content {
+    margin-bottom: 15px;
+  }
+}
+
+.node-content {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.node-content:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.node-actions .btn {
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.node-actions .btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.node-description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.toggle-btn {
+  color: #6c757d;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.toggle-btn:hover {
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+  opacity: 1;
+}
+
+/* Animation for expanding/collapsing */
+.node-children {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+/* Subtle animation when a new node is added */
+@keyframes highlight {
+  0% { background-color: rgba(13, 110, 253, 0.2); }
+  100% { background-color: transparent; }
+}
+
+.highlight {
+  animation: highlight 1.5s ease-out;
+}
+
+.btn-group {
+  position: relative;
+  display: inline-block;
+  
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 10rem;
+    padding: 0.5rem 0;
+    margin: 0.125rem 0 0;
+    font-size: 0.875rem;
+    color: #212529;
+    text-align: left;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+    display: none;
+    
+    &.show {
+      display: block;
+    }
+    
+    .dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 0.25rem 1rem;
+      clear: both;
+      font-weight: 400;
+      color: #212529;
+      text-align: left;
+      text-decoration: none;
+      white-space: nowrap;
+      background-color: transparent;
+      border: 0;
+      cursor: pointer;
+      
+      &:hover, &:focus {
+        color: #16181b;
+        background-color: #f8f9fa;
+        outline: none;
+      }
+    }
+  }
+}
+
+/* Properties section styling */
+.node-properties {
+  font-size: 0.85rem;
+}
+
+.node-properties button {
+  font-size: 0.8rem;
+}
+
+.node-properties strong {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}

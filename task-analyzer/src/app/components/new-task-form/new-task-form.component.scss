@@ -1,0 +1,22 @@
+.card {
+  border-radius: 0.75rem;
+}
+
+.card-header {
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+
+.form-label {
+  font-weight: 500;
+}
+
+.form-text {
+  font-size: 0.875em;
+}
+
+.text-danger {
+  font-size: 0.875em;
+}
+
+/* Ensure Font Awesome icons are available if not globally included */

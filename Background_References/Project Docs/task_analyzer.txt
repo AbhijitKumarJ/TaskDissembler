@@ -1,0 +1,3278 @@
+Directory Structure:
+
+└── task_analyser
+    ├── css
+    │   ├── sidebar.css
+    │   └── styles.css
+    ├── extra
+    │   ├── collapsible-sidebar-layout (1).html
+    │   ├── collapsible-sidebar-layout.html
+    │   ├── ecommerce-ui-plan.json
+    │   └── task_tree.json
+    ├── js
+    │   ├── flowchartRenderer.js
+    │   ├── globalData.js
+    │   ├── llmService.js
+    │   ├── popupHandler.js
+    │   ├── popupHandlerNodeAddEdit.js
+    │   ├── prompts.js
+    │   ├── rootFunctions.js
+    │   ├── serverCalls.js
+    │   ├── sidebar.js
+    │   └── treeDataManipulation.js
+    └── index.html
+
+
+
+---
+File: task_analyser/css/sidebar.css
+---
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transition: all 0.3s;
+    background-color: #343a40;
+    display: flex;
+    flex-direction: column;
+}
+#leftSidebar {
+    left: 0;
+}
+#rightSidebar {
+    right: 0;
+}
+.sidebar.collapsed {
+    width: 60px;
+}
+.sidebar.expanded {
+    width: 250px;
+}
+.sidebar .nav-link {
+    color: #fff;
+    padding: 10px 15px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.sidebar .nav-link:hover {
+    background-color: #495057;
+}
+.sidebar .nav-link i {
+    width: 30px;
+    text-align: center;
+}
+.sidebar .nav-link span {
+    margin-left: 10px;
+    display: none;
+}
+.sidebar.expanded .nav-link span {
+    display: inline;
+}
+#content {
+    margin-left: 60px;
+    margin-right: 60px;
+    transition: all 0.3s;
+}
+.toggleSidebar {
+    color: #fff;
+    background: none;
+    border: none;
+    padding: 10px 15px;
+}
+.action-links {
+    margin-top: auto;
+}
+
+
+---
+File: task_analyser/css/styles.css
+---
+
+body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.task-node {
+    background-color: #2c2c2c;
+    border: 1px solid #4a4a4a;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.node-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.node-text {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.node-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.node-children {
+    margin-left: 20px;
+    position: relative;
+}
+
+.node-children::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -10px;
+    border-left: 1px solid #4a4a4a;
+}
+
+.node-children .task-node::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10px;
+    width: 10px;
+    height: 1px;
+    background-color: #4a4a4a;
+}
+
+.action-icon {
+    cursor: pointer;
+    color: #007bff;
+}
+
+.editable {
+    background-color: #3c3c3c;
+    border: none;
+    color: #ffffff;
+    width: 100%;
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.popup-content {
+    background-color: #2c2c2c;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+}
+
+
+
+---
+File: task_analyser/extra/collapsible-sidebar-layout (1).html
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improved Collapsible Sidebar Layout</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            height: 100vh;
+            z-index: 1000;
+            transition: all 0.3s;
+            background-color: #343a40;
+            display: flex;
+            flex-direction: column;
+        }
+        #leftSidebar {
+            left: 0;
+        }
+        #rightSidebar {
+            right: 0;
+        }
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        .sidebar.expanded {
+            width: 250px;
+        }
+        .sidebar .nav-link {
+            color: #fff;
+            padding: 10px 15px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+        .sidebar .nav-link i {
+            width: 30px;
+            text-align: center;
+        }
+        .sidebar .nav-link span {
+            margin-left: 10px;
+            display: none;
+        }
+        .sidebar.expanded .nav-link span {
+            display: inline;
+        }
+        #content {
+            margin-left: 60px;
+            margin-right: 60px;
+            transition: all 0.3s;
+        }
+        .toggleSidebar {
+            color: #fff;
+            background: none;
+            border: none;
+            padding: 10px 15px;
+        }
+        .action-links {
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="leftSidebar" class="sidebar collapsed">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+            </li>
+        </ul>
+        <div class="action-links">
+            <a href="#" class="nav-link">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
+            </a>
+            <a href="#" class="nav-link">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+        <button class="toggleSidebar" data-sidebar="leftSidebar">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div id="rightSidebar" class="sidebar collapsed">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    <span>Messages</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-calendar"></i>
+                    <span>Calendar</span>
+                </a>
+            </li>
+        </ul>
+        <div class="action-links">
+            <a href="#" class="nav-link">
+                <i class="fas fa-question-circle"></i>
+                <span>Help</span>
+            </a>
+            <a href="#" class="nav-link">
+                <i class="fas fa-info-circle"></i>
+                <span>About</span>
+            </a>
+        </div>
+        <button class="toggleSidebar" data-sidebar="rightSidebar">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    </div>
+
+    <div id="content">
+        <div class="container mt-4">
+            <h1>Welcome to the Main Content</h1>
+            <p>This is where your main page content would go. It remains stationary when the sidebars expand or collapse.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.toggleSidebar').click(function() {
+                var sidebarId = $(this).data('sidebar');
+                $('#' + sidebarId).toggleClass('collapsed expanded');
+                $(this).find('i').toggleClass('fa-chevron-right fa-chevron-left');
+                
+                if ($('#' + sidebarId).hasClass('expanded')) {
+                    $('#' + sidebarId + ' .nav-link span').fadeIn(300);
+                } else {
+                    $('#' + sidebarId + ' .nav-link span').fadeOut(300);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+---
+File: task_analyser/extra/collapsible-sidebar-layout.html
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsible Sidebar Layout</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            transition: all 0.3s;
+            background-color: #343a40;
+        }
+        #sidebar.collapsed {
+            width: 60px;
+        }
+        #sidebar.expanded {
+            width: 250px;
+        }
+        #sidebar .nav-link {
+            color: #fff;
+            padding: 10px 15px;
+        }
+        #sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+        #sidebar .nav-link i {
+            width: 30px;
+            text-align: center;
+        }
+        #sidebar .nav-link span {
+            margin-left: 10px;
+        }
+        #content {
+            margin-left: 60px;
+            transition: all 0.3s;
+        }
+        #toggleSidebar {
+            position: absolute;
+            bottom: 20px;
+            left: 15px;
+            color: #fff;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar" class="collapsed">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        <button id="toggleSidebar">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div id="content">
+        <div class="container mt-4">
+            <h1>Welcome to the Main Content</h1>
+            <p>This is where your main page content would go. It remains stationary when the sidebar expands or collapses.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#toggleSidebar').click(function() {
+                $('#sidebar').toggleClass('collapsed expanded');
+                $(this).find('i').toggleClass('fa-chevron-right fa-chevron-left');
+                
+                if ($('#sidebar').hasClass('expanded')) {
+                    $('.nav-link span').fadeIn(300);
+                } else {
+                    $('.nav-link span').fadeOut(300);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+---
+File: task_analyser/extra/ecommerce-ui-plan.json
+---
+
+{
+  "id": "root",
+  "text": "Build a Modern E-commerce Website UI",
+  "children": [
+    {
+      "id": "setup",
+      "text": "Project Setup",
+      "children": [
+        {
+          "id": "setup-structure",
+          "text": "Create project structure",
+          "children": [
+            {
+              "id": "setup-folders",
+              "text": "Set up folders (css, js, images, pages)",
+              "children": []
+            },
+            {
+              "id": "setup-files",
+              "text": "Create initial files (index.html, style.css, main.js)",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "setup-dependencies",
+          "text": "Set up dependencies",
+          "children": [
+            {
+              "id": "setup-normalize",
+              "text": "Add normalize.css for consistent styling",
+              "children": []
+            },
+            {
+              "id": "setup-fontawesome",
+              "text": "Include Font Awesome for icons",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "html-structure",
+      "text": "Develop HTML Structure",
+      "children": [
+        {
+          "id": "html-header",
+          "text": "Create header section",
+          "children": [
+            {
+              "id": "html-nav",
+              "text": "Design navigation menu",
+              "children": []
+            },
+            {
+              "id": "html-search",
+              "text": "Add search functionality",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "html-main",
+          "text": "Develop main content area",
+          "children": [
+            {
+              "id": "html-product-grid",
+              "text": "Create product grid layout",
+              "children": []
+            },
+            {
+              "id": "html-product-filters",
+              "text": "Implement product filters",
+              "children": []
+            },
+            {
+              "id": "html-product-details",
+              "text": "Design product details page",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "html-cart",
+          "text": "Build shopping cart component",
+          "children": []
+        },
+        {
+          "id": "html-checkout",
+          "text": "Create checkout process pages",
+          "children": []
+        },
+        {
+          "id": "html-footer",
+          "text": "Design footer section",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "css-styling",
+      "text": "Implement CSS Styling",
+      "children": [
+        {
+          "id": "css-reset",
+          "text": "Set up CSS reset and base styles",
+          "children": []
+        },
+        {
+          "id": "css-layout",
+          "text": "Define layout and grid system",
+          "children": []
+        },
+        {
+          "id": "css-typography",
+          "text": "Style typography",
+          "children": []
+        },
+        {
+          "id": "css-colors",
+          "text": "Implement color scheme",
+          "children": []
+        },
+        {
+          "id": "css-components",
+          "text": "Style individual components",
+          "children": [
+            {
+              "id": "css-buttons",
+              "text": "Design buttons and CTAs",
+              "children": []
+            },
+            {
+              "id": "css-forms",
+              "text": "Style form elements",
+              "children": []
+            },
+            {
+              "id": "css-product-cards",
+              "text": "Create product card styles",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "css-responsive",
+          "text": "Implement responsive design",
+          "children": [
+            {
+              "id": "css-mobile",
+              "text": "Mobile-first styles",
+              "children": []
+            },
+            {
+              "id": "css-tablet",
+              "text": "Tablet-specific styles",
+              "children": []
+            },
+            {
+              "id": "css-desktop",
+              "text": "Desktop and large screen styles",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "css-animations",
+          "text": "Add CSS animations and transitions",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "js-functionality",
+      "text": "Develop JavaScript Functionality",
+      "children": [
+        {
+          "id": "js-modules",
+          "text": "Set up JavaScript modules",
+          "children": []
+        },
+        {
+          "id": "js-product-listing",
+          "text": "Implement product listing functionality",
+          "children": [
+            {
+              "id": "js-filtering",
+              "text": "Add product filtering",
+              "children": []
+            },
+            {
+              "id": "js-sorting",
+              "text": "Implement product sorting",
+              "children": []
+            },
+            {
+              "id": "js-pagination",
+              "text": "Create pagination system",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "js-product-details",
+          "text": "Develop product details interactions",
+          "children": [
+            {
+              "id": "js-image-gallery",
+              "text": "Create image gallery slider",
+              "children": []
+            },
+            {
+              "id": "js-add-to-cart",
+              "text": "Implement add to cart functionality",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "js-cart",
+          "text": "Build shopping cart functionality",
+          "children": [
+            {
+              "id": "js-cart-add",
+              "text": "Add items to cart",
+              "children": []
+            },
+            {
+              "id": "js-cart-update",
+              "text": "Update cart quantities",
+              "children": []
+            },
+            {
+              "id": "js-cart-remove",
+              "text": "Remove items from cart",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "js-checkout",
+          "text": "Implement checkout process",
+          "children": [
+            {
+              "id": "js-form-validation",
+              "text": "Add form validation",
+              "children": []
+            },
+            {
+              "id": "js-payment-integration",
+              "text": "Integrate payment gateway (mock)",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "js-search",
+          "text": "Develop search functionality",
+          "children": [
+            {
+              "id": "js-autocomplete",
+              "text": "Implement autocomplete suggestions",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "js-user-auth",
+          "text": "Create user authentication system (mock)",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "text": "Optimize Performance",
+      "children": [
+        {
+          "id": "perf-assets",
+          "text": "Optimize assets (images, fonts)",
+          "children": []
+        },
+        {
+          "id": "perf-lazy-loading",
+          "text": "Implement lazy loading for images and components",
+          "children": []
+        },
+        {
+          "id": "perf-minification",
+          "text": "Minify CSS and JavaScript",
+          "children": []
+        },
+        {
+          "id": "perf-caching",
+          "text": "Set up browser caching",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "accessibility",
+      "text": "Ensure Accessibility",
+      "children": [
+        {
+          "id": "a11y-semantics",
+          "text": "Use semantic HTML elements",
+          "children": []
+        },
+        {
+          "id": "a11y-aria",
+          "text": "Add ARIA attributes where necessary",
+          "children": []
+        },
+        {
+          "id": "a11y-keyboard",
+          "text": "Implement keyboard navigation",
+          "children": []
+        },
+        {
+          "id": "a11y-contrast",
+          "text": "Ensure sufficient color contrast",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "text": "Perform Testing",
+      "children": [
+        {
+          "id": "test-cross-browser",
+          "text": "Conduct cross-browser testing",
+          "children": []
+        },
+        {
+          "id": "test-responsive",
+          "text": "Test responsiveness across devices",
+          "children": []
+        },
+        {
+          "id": "test-performance",
+          "text": "Run performance tests",
+          "children": []
+        },
+        {
+          "id": "test-accessibility",
+          "text": "Perform accessibility audit",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "deployment",
+      "text": "Prepare for Deployment",
+      "children": [
+        {
+          "id": "deploy-build",
+          "text": "Set up build process",
+          "children": []
+        },
+        {
+          "id": "deploy-analytics",
+          "text": "Integrate analytics",
+          "children": []
+        },
+        {
+          "id": "deploy-seo",
+          "text": "Implement SEO best practices",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "properties": {
+    "project_name": "Modern E-commerce UI",
+    "target_completion": "8 weeks",
+    "priority": "High"
+  }
+}
+
+
+
+---
+File: task_analyser/extra/task_tree.json
+---
+
+{
+  "id": "root",
+  "text": "hi\n",
+  "children": [
+    {
+      "id": "child-0",
+      "text": "Subtask 1 of \"hi\"",
+      "children": [
+        {
+          "id": "child-0-child-0",
+          "text": "Subtask 1 of \"Subtask 1 of \"hi\n\"\"",
+          "children": []
+        },
+        {
+          "id": "child-0-child-1",
+          "text": "Subtask 2 of \"Subtask 1 of \"hi\n\"\"",
+          "children": [
+            {
+              "id": "child-0-child-1-child-0",
+              "text": "leaf task 1",
+              "children": []
+            }
+          ],
+          "properties": {
+            "prop6": "valu st",
+            "prop_act": "call llm"
+          }
+        },
+        {
+          "id": "child-0-child-2",
+          "text": "Subtask 3 of \"Subtask 1 of \"hi\n\"\"",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "child-1",
+      "text": "Subtask 2 of \"hi\n\"",
+      "children": []
+    },
+    {
+      "id": "child-2",
+      "text": "Subtask 3 of \"hi\n\"",
+      "children": []
+    }
+  ],
+  "properties": {
+    "prop1": "value1"
+  }
+}
+
+
+---
+File: task_analyser/js/flowchartRenderer.js
+---
+
+// This file contains functions for rendering the flowchart
+$(function () {
+    function renderFlowchart() {
+        const flowchart = document.getElementById('flowchart');
+        flowchart.innerHTML = '';
+        createNode(window.AJ_GPT.taskTree, flowchart, null);
+    }
+
+    function createNode(node, parentElement, parentNode) {
+        const nodeElement = document.createElement('div');
+        nodeElement.className = 'task-node';
+        nodeElement.innerHTML = `
+            <div class="node-content">
+                <span class="node-text">${node.text}</span>
+                <div class="node-actions">
+                    <i class="fas fa-edit action-icon" onclick="popupHandler.showEditNodeModal('${node.id}')" title="Edit"></i>
+                    <i class="fas fa-trash action-icon" onclick="treeDataManipulation.deleteNode('${node.id}')" title="Delete"></i>
+                    <i class="fas fa-code-branch action-icon" onclick="treeDataManipulation.promptForTaskDivision('${node.id}')" title="Subdivide with options"></i>
+                    <i class="fas fa-sitemap action-icon" onclick="treeDataManipulation.createSubnodesFromTaskDivision('${node.id}', false)" title="Subdivide with default options"></i><br/>
+                    <i class="fas fa-plus-circle action-icon" onclick="treeDataManipulation.addProperty('${node.id}')" title="Add Property"></i>
+                    <i class="fas fa-plus action-icon" onclick="popupHandler.showAddNodeModal('${node.id}', 'Add_Child')" title="Add Child"></i>
+                    <i class="fas fa-arrow-up action-icon" onclick="treeDataManipulation.moveNodeUp('${node.id}')" title="Move Up"></i>
+                    <i class="fas fa-arrow-down action-icon" onclick="treeDataManipulation.moveNodeDown('${node.id}')" title="Move Down"></i>
+                    <i class="fas fa-level-up-alt action-icon" onclick="treeDataManipulation.moveNodeToParentLevel('${node.id}')" title="Move to Parent Level"></i>
+                    <i class="fas fa-arrow-circle-up action-icon" onclick="popupHandler.showAddNodeModal('${node.id}', 'Add_Sibling_Up')" title="Add Task Above"></i>
+                    <i class="fas fa-arrow-circle-down action-icon" onclick="popupHandler.showAddNodeModal('${node.id}', 'Add_Sibling_Down')" title="Add Task Below"></i>
+                </div>
+            </div>
+        `;
+        if (node.properties) {
+            const propertiesElement = document.createElement('div');
+            propertiesElement.className = 'node-properties mt-2';
+            for (const [key, value] of Object.entries(node.properties)) {
+                propertiesElement.innerHTML += `<div><strong>${key}:</strong> ${value}</div>`;
+            }
+            nodeElement.appendChild(propertiesElement);
+        }
+        parentElement.appendChild(nodeElement);
+
+        if (node.children && node.children.length > 0) {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'node-children';
+            node.children.forEach(childNode => createNode(childNode, childrenContainer, node));
+            parentElement.appendChild(childrenContainer);
+        }
+    }
+
+    // window.AJ_GPT.openSubdividePopup=function(nodeid){
+    //     treeDataManipulation.createSubnodesFromTaskDivision(nodeid, false);
+    // }
+    // window.AJ_GPT.subdivideNodeDefault=function(nodeid){
+    //     treeDataManipulation.promptForTaskDivision(nodeid);
+    // }
+    window.AJ_GPT.renderFlowchart = renderFlowchart;
+});
+
+
+
+---
+File: task_analyser/js/globalData.js
+---
+
+window.AJ_GPT = {};
+
+window.AJ_GPT.taskTree = { id: "root", text: "", desc: "", children: [], properties: {} };
+
+// Default guest user
+window.AJ_GPT.loggedInUser = { id: 0, username: "Guest", persona: "Default" };
+
+window.AJ_GPT.userData = {
+    // LLM Configuration
+    llmProvider: "Groq", // Default provider
+    llmModelName: "meta-llama/llama-4-scout-17b-16e-instruct", // Default model
+    llmApiKey: "",
+    llmApiEndpoint: "",
+
+    // User-related data
+    isRegistering: false, // Kept for potential future use, though auth is simplified
+    isLoggedIn: true, // Default to true as there's no login process
+    userId: window.AJ_GPT.loggedInUser.id,
+    userName: window.AJ_GPT.loggedInUser.username,
+    userPersona: window.AJ_GPT.loggedInUser.persona,
+    userProjects: [], // Initialize as empty array
+    userSessions: [], // Initialize as empty array
+    
+    // Project and task context (simplified)
+    topicId: 0, // Kept for now, might be removed or repurposed
+    topicName: "", // Kept for now
+    subTopicId: 0, // Kept for now
+    subTopicName: "", // Kept for now
+    projectId: 0, // Current project ID, if loaded
+    projectName: "", // Current project name, if loaded
+    projectDesc: "", // Current project description, if loaded
+    
+    taskType: ['General'], // Default task type for prompts
+};
+
+// Old data related to topics and sub-topics (now removed as per instructions)
+// window.AJ_GPT.topics = [ ... ];
+// window.AJ_GPT.subTopics = [ ... ];
+
+
+
+---
+File: task_analyser/js/llmService.js
+---
+
+window.AJ_GPT.llmService = {};
+
+/**
+ * Creates a prompt for the LLM based on the task type and other context.
+ * Similar to the old createPrompt in serverCalls.js.
+ *
+ * @param {string[]} task_type - Array of strings indicating task type (e.g., ['UI', 'Angular']).
+ * @param {boolean} is_root - Whether this is the root task.
+ * @param {string} task_summary - Summary of the current task.
+ * @param {string} task_description - Detailed description of the current task.
+ * @param {string} project_desc - Description of the overall project.
+ * @param {string} parent_task_desc - Description of the parent task.
+ * @param {string} siblings_desc - Description of sibling tasks.
+ * @returns {object[]} The structured prompt for the LLM (e.g., [{ role: "user", content: "..." }]).
+ */
+function createPrompt(task_type, is_root, task_summary, task_description, project_desc, parent_task_desc, siblings_desc) {
+    let taskLeafNode = window.AJ_GPT.llm_prompts;
+    let prompt_template = "";
+    let foundTemplate = true;
+
+    if (task_type && task_type.length > 0) {
+        for (let i = 0; i < task_type.length; i++) {
+            if (taskLeafNode && taskLeafNode[task_type[i]]) { // Check if taskLeafNode is not undefined
+                taskLeafNode = taskLeafNode[task_type[i]];
+            } else {
+                foundTemplate = false;
+                break;
+            }
+        }
+        if (foundTemplate && taskLeafNode) { // Check if taskLeafNode is not undefined
+            prompt_template = is_root ? taskLeafNode.Task : taskLeafNode.SubTask;
+        } else {
+            foundTemplate = false; // If taskLeafNode became undefined
+        }
+    } else {
+        foundTemplate = false; // No task_type specified or empty array
+    }
+
+    if (!foundTemplate || !prompt_template) {
+        console.warn("Specific prompt template not found for task_type:", task_type, "is_root:", is_root, ". Falling back to General prompt.");
+        if (window.AJ_GPT.llm_prompts && window.AJ_GPT.llm_prompts.General) { // Check if General exists
+             prompt_template = is_root ? window.AJ_GPT.llm_prompts.General.Task : window.AJ_GPT.llm_prompts.General.SubTask;
+        }
+        if (!prompt_template) { // Ultimate fallback
+            prompt_template = `You are a task decomposition assistant. Break down the following task into clear, actionable subtasks.
+            
+            TASK:
+            {{Task_Summary}}
+            
+            DESCRIPTION:
+            {{Task_Description}}
+            
+            PROJECT CONTEXT:
+            {{Project_Context}}
+            
+            IMPORTANT INSTRUCTIONS:
+            1. Return ONLY a valid JSON array of objects
+            2. Each object MUST have 'text' and 'description' fields
+            3. Do not include any markdown formatting or additional text
+            4. Ensure the JSON is valid and properly escaped
+            
+            Example response format:
+            [
+                {
+                    "text": "Subtask 1",
+                    "description": "Description of subtask 1"
+                },
+                {
+                    "text": "Subtask 2",
+                    "description": "Description of subtask 2"
+                }
+            ]`;
+            console.warn("Using enhanced fallback prompt for task_type:", task_type, "is_root:", is_root);
+        }
+    }
+    
+    let prompt_string = prompt_template;
+    // Ensure prompt_string is a string before calling replace
+    if (typeof prompt_string !== 'string') {
+        console.error("Prompt template is not a string. Task_type:", task_type, "is_root:", is_root, "Template:", prompt_template);
+        // Fallback to a very basic prompt if the template is somehow not a string
+        prompt_string = "Please subdivide the task: {{Task_Summary}}. Description: {{Task_Description}}.";
+    }
+
+    prompt_string = prompt_string.replace(/{{Task_Summary}}/g, task_summary || "");
+    prompt_string = prompt_string.replace(/{{Task_Description}}/g, task_description || "");
+    prompt_string = prompt_string.replace(/{{Project_Context}}/g, project_desc || "N/A");
+    prompt_string = prompt_string.replace(/{{Parent_Task}}/g, parent_task_desc || "N/A");
+    prompt_string = prompt_string.replace(/{{Sibling_Tasks}}/g, siblings_desc || "N/A");
+
+    // console.log("Using prompt template for task_type:", task_type, "is_root:", is_root);
+    // console.log("Constructed prompt string:", prompt_string);
+
+    return [{ role: "user", content: prompt_string }];
+}
+
+/**
+ * Calls the appropriate LLM API to subdivide a task.
+ * Replaces the old subDivideTask AJAX call.
+ *
+ * @param {string[]} task_type - Task type array.
+ * @param {boolean} is_root - If it's a root task.
+ * @param {string} task_summary - Task summary.
+ * @param {string} task_description - Task description.
+ * @param {string} project_desc - Project description.
+ * @param {string} parent_task_desc - Parent task description.
+ * @param {string} siblings_desc - Sibling tasks description.
+ * @param {object} options - Additional options (currently unused but kept for compatibility).
+ * @param {function} success_callback - Callback for successful API response.
+ * @param {function} error_callback - Callback for API errors.
+ */
+async function subDivideTaskLLM(task_type, is_root, task_summary, task_description, project_desc, parent_task_desc, siblings_desc, options, success_callback, error_callback) {
+    let llmProvider, llmModelName, llmApiKey, llmApiEndpoint;
+    
+    try {
+        if (!task_summary || task_summary.trim() === '') {
+            throw new Error('Task summary cannot be empty');
+        }
+
+        // Get LLM configuration
+        ({ llmProvider, llmModelName, llmApiKey, llmApiEndpoint } = window.AJ_GPT.userData);
+        
+        if (!llmApiKey || llmApiKey.trim() === '') {
+            throw new Error('API key is required');
+        }
+
+        const prompt = createPrompt(task_type, is_root, task_summary, task_description, project_desc, parent_task_desc, siblings_desc);
+        console.log('Using LLM Provider:', llmProvider);
+        console.log('Using Model:', llmModelName);
+        console.log('Prompt sent to LLM:', prompt);
+
+        let endpoint = "";
+        let headers = { "Content-Type": "application/json" };
+        let body = {};
+
+        try {
+            switch (llmProvider) {
+            case "Groq":
+                endpoint = "https://api.groq.com/openai/v1/chat/completions";
+                if (!llmApiKey) {
+                    error_callback("Groq API Key is missing.");
+                    return;
+                }
+                headers["Authorization"] = `Bearer ${llmApiKey}`;
+                body = { messages: prompt, model: llmModelName };
+                break;
+            case "OpenAI":
+                endpoint = "https://api.openai.com/v1/chat/completions";
+                if (!llmApiKey) {
+                    error_callback("OpenAI API Key is missing.");
+                    return;
+                }
+                headers["Authorization"] = `Bearer ${llmApiKey}`;
+                body = { messages: prompt, model: llmModelName };
+                break;
+            case "Ollama":
+                endpoint = llmApiEndpoint || "http://localhost:11434/api/chat"; // Default if not specified
+                body = { messages: prompt, model: llmModelName, stream: false };
+                break;
+            case "Other (Manual Endpoint)":
+                if (!llmApiEndpoint) {
+                    error_callback("Manual API Endpoint is missing for 'Other' provider.");
+                    return;
+                }
+                endpoint = llmApiEndpoint;
+                // Assuming OpenAI/Groq like structure, API key might be needed depending on the endpoint
+                if (llmApiKey) { // Conditionally add API key if provided
+                    headers["Authorization"] = `Bearer ${llmApiKey}`; 
+                }
+                body = { messages: prompt, model: llmModelName };
+                break;
+            default:
+                error_callback(`Unsupported LLM provider: ${llmProvider}`);
+                return;
+        }
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(body),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            let content = "";
+            // Standard OpenAI/Groq structure
+            if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                content = data.choices[0].message.content;
+            } 
+            // Ollama structure (non-streaming)
+            else if (data.message && data.message.content) {
+                content = data.message.content;
+            } 
+            // Fallback if the structure is unknown but response was OK
+            else if (typeof data === 'object') {
+                 console.warn("LLM response structure not fully recognized, attempting to find content. Full response:", data);
+                 // Try to find some content, this is a guess.
+                 if (data.content) content = data.content;
+                 else if (data.text) content = data.text;
+                 else content = JSON.stringify(data); // Last resort
+            } else {
+                content = data; // If it's just a string response
+            }
+            
+            if (content) {
+                try {
+                    success_callback(content, prompt);
+                } catch (e) {
+                    console.error("Error processing LLM response:", e);
+                    console.error("Raw LLM content:", content);
+                    
+                    let errorMessage = "Error: Could not process the response from the AI. ";
+                    if (e instanceof SyntaxError) {
+                        errorMessage += "The response was not valid JSON. ";
+                    } else {
+                        errorMessage += e.message + " ";
+                    }
+                    errorMessage += "Please try again or check the console for more details.";
+                    
+                    if (error_callback && typeof error_callback === 'function') {
+                        error_callback(errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+                }
+            } else {
+                console.error("LLM response content is empty or in an unexpected format:", data);
+                error_callback("LLM response content is empty or in an unexpected format. Full response: " + JSON.stringify(data));
+            }
+
+        } else {
+            const errorData = await response.text(); // Use text() to avoid JSON parse error if response is not JSON
+            console.error("LLM API Error:", response.status, errorData);
+            error_callback(`LLM API Error: ${response.status} ${response.statusText}. Details: ${errorData}`);
+        }
+    } catch (error) {
+            console.error("Error in subDivideTaskLLM:", error);
+            error_callback(`Network or other error during LLM call: ${error.message}`);
+        }
+    } catch (error) {
+        console.error("Error in subDivideTaskLLM (outer):", error);
+        if (error_callback && typeof error_callback === 'function') {
+            error_callback(`Error: ${error.message}`);
+        } else {
+            console.error("No error callback provided");
+        }
+    }
+}
+
+window.AJ_GPT.llmService.createPrompt = createPrompt;
+window.AJ_GPT.llmService.subDivideTaskLLM = subDivideTaskLLM;
+
+
+
+---
+File: task_analyser/js/popupHandler.js
+---
+
+$(document).ready(function () {
+    const modal = new bootstrap.Modal(document.getElementById("authModal"));
+
+    $("#lnkLogin,#openAuthModal").click(() => {
+        modal.show();
+        onLoginSuccess(window.AJ_GPT.loggedInUser);
+}
+);
+
+    $("#toggleRegister").click(function () {
+        isRegistering = !isRegistering;
+        $("#personaField").toggleClass("hidden");
+        $(this).text(
+            window.AJ_GPT.userData.isRegistering
+                ? "Already registered? Log in"
+                : "Not registered? Sign up"
+        );
+        $("#authModalLabel").text(
+            window.AJ_GPT.userData.isRegistering
+                ? "Registration"
+                : "Authentication"
+        );
+    });
+
+    function updateLoggedInUIState() {
+        if (window.AJ_GPT.userData.isLoggedIn) {
+            $("#divLoggedIn").removeClass("hidden");
+            $("#divNotLoggedIn").addClass("hidden");
+
+            $('#txtCurrentProject').val(window.AJ_GPT.userData.projectName);
+            $('#txtCurrentProjectDesc').val(window.AJ_GPT.userData.projectDesc);
+            $('#taskInput').val(window.AJ_GPT.userData.projectDesc);
+        } else {
+            $("#divLoggedIn").addClass("hidden");
+            $("#divNotLoggedIn").removeClass("hidden");
+            $('#txtCurrentProject').val('');
+            $('#txtCurrentProjectDesc').val('');
+            $('#taskInput').val('');
+        }
+    }
+
+    function populateTopics(topics) {
+        $("#ddlTopic").empty();
+
+        topics.forEach((topic) => {
+            $("#ddlTopic").append(
+                `<option value="${topic.id.toString()}">${
+                    topic.topic_name
+                }</option>`
+            );
+        });
+
+        $("#ddlTopic")[0].selectedIndex = 0;
+    }
+
+    function populateSubTopics(subTopics, topicId) {
+        $("#ddlSubTopic").empty();
+
+        $("#ddlSubTopic").append(
+            `<option value="${subTopics[0].id.toString()}">${
+                subTopics[0].sub_topic_name
+            }</option>`
+        );
+
+        if (topicId > 0) {
+            let filteredSubTopics = subTopics.filter(
+                (x) => x.topic_id == topicId
+            );
+            for (let index = 0; index < filteredSubTopics.length; index++) {
+                $("#ddlSubTopic").append(
+                    `<option value="${filteredSubTopics[
+                        index
+                    ].id.toString()}">${
+                        filteredSubTopics[index].sub_topic_name
+                    }</option>`
+                );
+            }
+        }
+
+        $("#ddlSubTopic")[0].selectedIndex = 0;
+    }
+
+    function populateUserProjects(userProjects, subTopicId) {
+        $("#ddlUserProject").empty();
+
+        $("#ddlUserProject").append(
+            `<option value="0"> ---Select--- </option>`
+        );
+
+        if (subTopicId > 0) {
+            let filteredUserProjects = userProjects.filter(
+                (x) => x.sub_topic_id == subTopicId
+            );
+            for (let index = 0; index < filteredUserProjects.length; index++) {
+                $("#ddlUserProject").append(
+                    `<option value="${filteredUserProjects[
+                        index
+                    ].id.toString()}">${
+                        filteredUserProjects[index].project_name
+                    }</option>`
+                );
+            }
+        }
+
+        $("#ddlUserProject")[0].selectedIndex = 0;
+    }
+
+
+    $("#loginForm").submit(function (e) {
+        e.preventDefault();
+
+        let userName = $("#username").val();
+        let password = $("#password").val();
+        let userPersona = $("#persona").val() || window.AJ_GPT.userData.userPersona;
+
+        if (window.AJ_GPT.userData.isRegistering) {
+            console.log("Registering:", { username, password, persona });
+            registerUser(userName, password, userPersona);
+        } else {
+            console.log("Logging in:", { username, password });
+            loginUser(userName, password);
+        }
+    });
+    
+    $("#ddlTopic").on("change", function () {
+        let selected_topic_id = parseInt($("#ddlTopic").val() ?? "0");
+        populateSubTopics(window.AJ_GPT.subTopics, selected_topic_id);
+        window.AJ_GPT.userData.topicName = $("#ddlTopic")[0].selectedOptions[0].text;
+    });
+
+    $("#ddlSubTopic").on("change", function () {
+        let selected_sub_topic_id = parseInt(
+            $("#ddlSubTopic").val() ?? "0"
+        );
+        populateUserProjects(
+            window.AJ_GPT.userData.userProjects,
+            selected_sub_topic_id
+        );
+        window.AJ_GPT.userData.subTopicName = $("#ddlSubTopic")[0].selectedOptions[0].text;
+    });
+
+    $("#ddlUserProject").on("change", function () {
+        let selectedOption=$("#ddlUserProject")[0].selectedOptions[0];
+
+        let elUserProject$=$('#txtUserProject');
+        let elUserProjectDesc$=$('#txtUserProjectDesc');
+
+        if(selectedOption.value=='0')
+            {
+                window.AJ_GPT.userData.projectId=0;
+                window.AJ_GPT.userData.projectName = "";
+                window.AJ_GPT.userData.projectDesc="";
+                elUserProject$.val('');
+                elUserProjectDesc$.val('');
+
+                elUserProject$.attr('readonly', false);
+                elUserProjectDesc$.attr('readonly', false);
+            }
+            else
+            {
+                window.AJ_GPT.userData.projectId=parseInt(selectedOption.value);
+                selectedProject=
+                window.AJ_GPT.userData.userProjects.filter(x=>x.id==window.AJ_GPT.userData.projectId)[0];
+                window.AJ_GPT.userData.projectName = selectedProject.project_name;
+                window.AJ_GPT.userData.projectDesc=selectedProject.project_desc;
+
+                elUserProject$.val(window.AJ_GPT.userData.projectName);
+                elUserProjectDesc$.val(window.AJ_GPT.userData.projectDesc);
+
+                elUserProject$.attr('readonly', true);
+                elUserProjectDesc$.attr('readonly', true);
+            }
+    });
+
+    $("#startSession").click(function () {
+        var selectedTopic = parseInt($("#ddlTopic").val());
+        var selectedSubTopic = parseInt($("#ddlSubTopic").val());
+        var selectedProject = parseInt($("#ddlUserProject").val());
+        var newProject = $("#txtUserProject").val().trim();
+        var newProjectDesc = $("#txtUserProjectDesc").val().trim();
+        if (selectedProject == 0) {
+            if (newProject == "") {
+                alert("Please select a project or give a new project name");
+                return;
+            }
+            window.AJ_GPT.userData.projectName=newProject;
+            window.AJ_GPT.userData.projectDesc=newProjectDesc;            
+        }
+        var session_name = $("#txtUserSession").val().trim();
+        if (session_name) {
+            console.log("Starting session :", session_name);
+            // Here you would typically send a request to your server to start a new session
+            createSession(
+                window.AJ_GPT.userData.userId,
+                selectedTopic,
+                selectedSubTopic,
+                selectedProject,
+                newProject,
+                newProjectDesc,
+                session_name
+            );
+        } else {
+            alert("Please enter a purpose for this session");
+        }
+    });
+
+    function onLoginSuccess(response) {
+        window.AJ_GPT.userData.isLoggedIn = true;
+        window.AJ_GPT.userData.userId = response.id;
+        window.AJ_GPT.userData.userName = response.username;
+        window.AJ_GPT.userData.userPersona = response.persona;
+
+        // Simulated successful authentication
+        //$("#loginForm").addClass("hidden");
+        $("#topicSelection").removeClass("hidden");
+
+        populateTopics(window.AJ_GPT.topics);
+
+        populateSubTopics(window.AJ_GPT.subTopics, 0);
+
+        getUserProjects();
+
+        getUserSessions();
+    }
+
+
+    function getUserProjects() {
+        window.AJ_GPT.serverCalls.getUserProjects(
+            window.AJ_GPT.userData.userId,
+            function (response) {
+                if (response.status === "success") {
+                    console.log("projects:", response.data);
+                    window.AJ_GPT.userData.userProjects = response.data;
+                } else {
+                    alert("Error: " + response.message);
+                }
+            },
+            function () {
+                alert("Failed: " + response.message);
+            }
+        );
+    }
+
+    function getUserSessions() {
+        window.AJ_GPT.serverCalls.getUserSessions(
+            window.AJ_GPT.userData.userId,
+            function (response) {
+                if (response.status === "success") {
+                    console.log("sessions:", response.data);
+                    window.AJ_GPT.userData.userSessions = response.data.db;
+                } else {
+                    alert("Error: " + response.message);
+                }
+            },
+            function () {
+                alert("Failed: " + response.message);
+            }
+        );
+    }
+
+    function onSessionStart(response) {
+        window.AJ_GPT.userData.sessionId = response.data.id;
+        window.AJ_GPT.userData.sessionName=response.data.Session_Name
+        window.AJ_GPT.userData.sessionDesc=response.data.Session_Folder
+        window.AJ_GPT.userData.projectId = response.data.project_id;
+        window.AJ_GPT.userData.topicId = response.data.topic_id;
+        window.AJ_GPT.userData.subTopicId = response.data.sub_topic_id;
+        
+        selectedSubTopics=window.AJ_GPT.subTopics.filter(x=>x.id==window.AJ_GPT.userData.subTopicId);
+        console.log(selectedSubTopics);
+
+        window.AJ_GPT.userData.taskType=selectedSubTopics[0].task_type;
+        // window.AJ_GPT.userData.projectName = response.data.project_name;
+        // window.AJ_GPT.userData.projectDesc = response.data.project_desc;
+
+        modal.hide();
+
+        updateLoggedInUIState();
+    }
+
+
+    function loginUser(userName, password) {
+        window.AJ_GPT.serverCalls.login_user(
+            userName,
+            password,
+            function (response) {
+                if (response.status === "success") {
+                    //alert("Login successful!");
+                    console.log("User data:", response.data);
+                    onLoginSuccess(response);
+                } else {
+                    alert("Login failed: " + response.message);
+                }
+            },
+            function () {}
+        );
+    }
+
+    function registerUser(userName, password, userPersona) {
+        window.AJ_GPT.serverCalls.register_user(
+            userName,
+            password,
+            userPersona,
+            function (resp) {
+                if (response.status === "success") {
+                    alert("Registration successful!");
+                    console.log("User data:", response.data);
+                    onLoginSuccess(response);
+                } else {
+                    alert("Registration failed: " + response.message);
+                }
+            },
+            function () {
+                alert("Registration failed: " + response.message);
+            }
+        );
+    }
+
+    function createSession(
+        user_id,
+        selectedTopic,
+        selectedSubTopic,
+        selectedProject,
+        newProject,
+        newProjectDesc,
+        session_name
+    ) {
+        window.AJ_GPT.serverCalls.createSession(
+            user_id,
+            selectedTopic,
+            selectedSubTopic,
+            selectedProject,
+            newProject,
+            newProjectDesc,
+            session_name,
+            function (response) {
+                if (response.status === "success") {
+                    alert("Session created successful!");
+                    console.log("User Session data:", response.data);
+                    onSessionStart(response);
+                } else {
+                    alert("Session creation failed: " + response.message);
+                }
+            },
+            function () {}
+        );
+    }
+
+});
+
+
+
+---
+File: task_analyser/js/popupHandlerNodeAddEdit.js
+---
+
+
+$(function () {
+
+    // Initialize modals and tree view when the document is ready
+    var editNodeModal = new bootstrap.Modal(document.getElementById("editNodeModal"));
+
+    var addNodeModal = new bootstrap.Modal(document.getElementById("addNodeModal"));
+    
+    // Function to show the edit node modal
+    function showEditNodeModal(nodeId) {
+        const node = treeDataManipulation.findNodeById(nodeId);
+        if (node) {
+            $("#editNodeId").val(nodeId);
+            $("#editNodeText").val(node.text);
+            $("#editNodeProperties").val(
+                JSON.stringify(node.properties, null, 2)
+            );
+            editNodeModal.show();
+        }
+    }
+
+    // Function to save edited node
+    function saveEditNode() {
+        const nodeId = $("#editNodeId").val();
+        const newText = $("#editNodeText").val();
+        let newProperties;
+
+        try {
+            newProperties = JSON.parse($("#editNodeProperties").val());
+        } catch (e) {
+            alert("Invalid JSON in properties");
+            return;
+        }
+
+        if (
+            treeDataManipulation.updateNodeData(nodeId, newText, newProperties)
+        ) {
+            editNodeModal.hide();
+        }
+    }
+
+    let add_type = "";
+    
+    // Function to show the add node modal
+    function showAddNodeModal(parentId = "", addType) {
+        add_type = addType;
+
+        $("#addNodeParent").val(parentId);
+        addNodeModal.show();
+    }
+
+    // Function to save new node
+    function saveAddNode() {
+        const parentId = $("#addNodeParent").val();
+        const newText = $("#addNodeText").val();
+        let newProperties;
+        try {
+            newProperties = JSON.parse($("#addNodeProperties").val());
+        } catch (e) {
+            alert("Invalid JSON in properties");
+            return;
+        }
+
+        if (add_type == "Add_Child") {
+            const newNodeId = treeDataManipulation.addChildNode(
+                parentId,
+                newText
+            );
+            if (newNodeId) {
+                treeDataManipulation.updateNodeData(
+                    newNodeId,
+                    null,
+                    newProperties
+                );
+                addNodeModal.hide();
+                add_type = "";
+                //renderTreeView();
+            }
+        } else if (add_type == "Add_Sibling_Up") {
+            const newNodeId = treeDataManipulation.addSiblingNodeAbove(
+                parentId,
+                newText
+            );
+            if (newNodeId) {
+                treeDataManipulation.updateNodeData(
+                    newNodeId,
+                    null,
+                    newProperties
+                );
+                addNodeModal.hide();
+                add_type = "";
+                //renderTreeView();
+            }
+        } else if (add_type == "Add_Sibling_Down") {
+            const newNodeId = treeDataManipulation.addSiblingNodeBelow(
+                parentId,
+                newText
+            );
+            if (newNodeId) {
+                treeDataManipulation.updateNodeData(
+                    newNodeId,
+                    null,
+                    newProperties
+                );
+                addNodeModal.hide();
+                add_type = "";
+                //renderTreeView();
+            }
+        }
+    }
+
+    $("#btnSaveAddNode").on("click", saveAddNode);
+
+    $("#btnSaveEditNode").on("click", saveEditNode);
+
+    //renderTreeView();
+    popupHandler = {};
+    popupHandler.showAddNodeModal = showAddNodeModal;
+    popupHandler.showEditNodeModal = showEditNodeModal;
+    window.AJ_GPT.popuphandler = popupHandler;
+});
+
+
+
+---
+File: task_analyser/js/prompts.js
+---
+
+window.AJ_GPT.llm_prompts={
+    UI:{
+        React:{
+            Task:"",
+            SubTask:""
+        },
+        Angular:{
+            Task:"",
+            SubTask:""
+        },
+        JQuery:{
+            Task:"",
+            SubTask:""
+        }
+    },
+    API:{
+        Python:{
+            FastAPI:{
+                Task:"",
+                SubTask:""
+            },
+            Flask:{
+                Task:"",
+                SubTask:""
+            },
+        },
+        CSharp:{
+            WebAPI:{
+                Task:"",
+                SubTask:""
+            }
+        },
+        NodeJs:{
+            API:{
+                Task:"",
+                SubTask:""
+            }
+        }
+    },
+    DB:{
+        Sqlite:{
+            Task:"",
+            SubTask:""
+        },
+        MySql:{
+            Task:"",
+            SubTask:""
+        }
+    },
+}
+
+window.AJ_GPT.llm_prompts.UI.Angular.Task=`
+You are an expert in Angular development and project management. I need you to break down the task of "Frontend UI Development using Angular" into its main high-level components. Please provide the first-level nodes of this task breakdown.
+
+
+
+[Task Summary]
+{{Task_Summary}}
+
+
+
+[Task Description]
+{{Task_Description}}
+
+
+
+Use the [Task Summary] and [Task Description] provided by user to formulate task specific break down applying all the given conditions.
+
+For each first-level node, include the following properties:
+
+1. id: A unique identifier for the node
+2. text: A brief, descriptive title for the task
+3. description: A more detailed explanation of what the task entails
+4. level: Should be 1 for all first-level nodes
+5. is_actionable: Boolean (true/false) indicating if this node represents an action item or just a category
+6. execution_category: The type of task (e.g., "planning", "development", "testing", "documentation")
+7. state: The current status ("not_started", "in_progress", "completed")
+8. needs_revision: Boolean indicating if the task needs to be reviewed or updated
+9. llm_prompt: A suggested prompt to generate subtasks or get more details about this task
+10. associated_files: List of files that are related to this task
+11. estimated_time: An approximate time to complete this task
+12. dependencies: List of tasks (if any) that need to be completed before this one can start
+13. assigned_to: The role responsible for this task
+14. review_required: Boolean indicating if the task output needs review
+15. priority: Task priority ("high", "medium", "low")
+16. complexity: Task difficulty ("simple", "moderate", "complex")
+17. tags: Array of relevant keywords
+18. acceptance_criteria: List of criteria that define task completion
+19. resources: Links or references to helpful documentation or tools
+20. subtask_strategy: Approach for breaking down this task further
+
+Please provide the result as a JSON array, where each object in the array represents a first-level node with all the properties listed above.
+
+Focus on creating a comprehensive but manageable set of first-level tasks that cover all major aspects of Angular frontend UI development, including but not limited to project setup, component development, routing, state management, API integration, testing, and deployment.
+Please provide output only in json and don't add any extra text or character outside json.
+`;
+
+window.AJ_GPT.llm_prompts.UI.Angular.SubTask=`
+You are an expert in Angular development and project management. We are working on a frontend UI development project using Angular. I need you to break down a specific task into its subtasks. Here's the context and the task to break down:
+
+
+[Project Context]
+{{Project_Context}}
+
+
+
+[Parent Task]
+{{Parent_Task}}
+
+
+
+[Sibling Tasks]
+{{Sibling_Tasks}}
+
+
+
+[Task to Break Down]
+{{Task_Summary}}}
+
+
+
+[Task Description]
+{{Task_Description}}
+
+
+
+Please provide the next level of subtasks for the [Task to Break Down] using [Task Description] to get more details on task. 
+
+For each subtask, include the following properties:
+
+1. id: A unique identifier for the subtask
+2. text: A brief, descriptive title for the subtask
+3. description: A more detailed explanation of what the subtask entails
+4. level: The level of this subtask (parent task level + 1)
+5. is_actionable: Boolean (true/false) indicating if this subtask represents an action item
+6. execution_category: The type of task (e.g., "development", "testing", "documentation")
+7. state: The current status ("not_started")
+8. needs_revision: Boolean (initially set to false)
+9. llm_prompt: A suggested prompt to generate further subtasks or get more details
+10. associated_files: List of files that are likely to be related to this subtask
+11. estimated_time: An approximate time to complete this subtask
+12. dependencies: List of other subtasks (if any) that need to be completed before this one
+13. assigned_to: The role responsible for this subtask
+14. review_required: Boolean indicating if the subtask output needs review
+15. priority: Subtask priority ("high", "medium", "low")
+16. complexity: Subtask difficulty ("simple", "moderate", "complex")
+17. tags: Array of relevant keywords
+18. acceptance_criteria: List of criteria that define subtask completion
+19. resources: Links or references to helpful documentation or tools
+20. subtask_strategy: Approach for potentially breaking down this subtask further
+
+Please provide the result as a JSON array, where each object in the array represents a subtask with all the properties listed above.
+
+Focus on creating a comprehensive but manageable set of subtasks that directly contribute to completing the [Task to Break Down]. Ensure that the subtasks are specific, actionable, and aligned with Angular development best practices.
+
+Remember to consider the following in your breakdown:
+1. The specific requirements of the [Task to Break Down]
+2. The context provided by the [Parent Task] and [Sibling Tasks]
+3. The overall project context
+4. Standard Angular development workflows and best practices
+5. Potential dependencies between subtasks
+
+Aim to provide 3-7 subtasks unless the complexity of the [Task to Break Down] clearly warrants more or fewer.
+Please provide output only in json and don't add any extra text or character outside json.
+`;
+
+
+window.AJ_GPT.llm_prompts.UI.React.Task=``;
+window.AJ_GPT.llm_prompts.UI.React.SubTask=``;
+
+window.AJ_GPT.llm_prompts.UI.JQuery.Task=``;
+window.AJ_GPT.llm_prompts.UI.JQuery.SubTask=``;
+
+window.AJ_GPT.llm_prompts.API.Python.FastAPI.Task=`
+You are an expert in Python backend development, specifically using FastAPI, and project management. I need you to break down the task of "Web API Development using FastAPI" into its main high-level components. Please provide the first-level nodes of this task breakdown.
+
+
+
+[Task Summary]
+{{Task_Summary}}
+
+
+
+[Task Description]
+{{Task_Description}}
+
+
+
+Use the [Task Summary] and [Task Description] provided by user to formulate task specific break down applying all the given conditions.
+
+For each first-level node, include the following properties:
+
+1. id: A unique identifier for the node
+2. text: A brief, descriptive title for the task
+3. description: A more detailed explanation of what the task entails
+4. level: Should be 1 for all first-level nodes
+5. is_actionable: Boolean (true/false) indicating if this node represents an action item or just a category
+6. execution_category: The type of task (e.g., "planning", "development", "testing", "documentation", "deployment")
+7. state: The current status ("not_started", "in_progress", "completed")
+8. needs_revision: Boolean indicating if the task needs to be reviewed or updated
+9. llm_prompt: A suggested prompt to generate subtasks or get more details about this task
+10. associated_files: List of files that are related to this task (e.g., "main.py", "requirements.txt")
+11. estimated_time: An approximate time to complete this task
+12. dependencies: List of tasks (if any) that need to be completed before this one can start
+13. assigned_to: The role responsible for this task (e.g., "Backend Developer", "DevOps Engineer")
+14. review_required: Boolean indicating if the task output needs review
+15. priority: Task priority ("high", "medium", "low")
+16. complexity: Task difficulty ("simple", "moderate", "complex")
+17. tags: Array of relevant keywords (e.g., ["FastAPI", "Python", "API", "Backend"])
+18. acceptance_criteria: List of criteria that define task completion
+19. resources: Links or references to helpful documentation or tools (e.g., FastAPI documentation, Pydantic docs)
+20. subtask_strategy: Approach for breaking down this task further (e.g., "feature-based", "layer-based")
+
+Please provide the result as a JSON array, where each object in the array represents a first-level node with all the properties listed above.
+
+Focus on creating a comprehensive but manageable set of first-level tasks that cover all major aspects of FastAPI web API development, including but not limited to:
+
+1. Project setup and configuration
+2. API design and planning
+3. Database integration (if applicable)
+4. Authentication and authorization
+5. Core API endpoint implementation
+6. Data validation and serialization
+7. Error handling and logging
+8. Testing (unit, integration, and API tests)
+9. Documentation (API docs, Swagger/OpenAPI)
+10. Deployment and DevOps considerations
+11. Performance optimization
+12. Security measures
+13. Monitoring and analytics setup
+
+Ensure that the tasks align with FastAPI best practices and common patterns in production-ready web API development. Consider aspects like async programming, dependency injection, and the use of Pydantic for data modeling.
+Please provide output only in json and don't add any extra text or character outside json.
+`;
+
+window.AJ_GPT.llm_prompts.API.Python.FastAPI.SubTask=`
+You are an expert in Python backend development, specifically using FastAPI, and project management. We are working on a web API development project using FastAPI. I need you to break down a specific task into its subtasks. Here's the context and the task to break down:
+
+
+[Project Context]
+{{Project_Context}}
+
+
+
+[Parent Task]
+{{Parent_Task}}
+
+
+
+[Sibling Tasks]
+{{Sibling_Tasks}}
+
+
+
+[Task to Break Down]
+{{Task_Summary}}}
+
+
+
+[Task Description]
+{{Task_Description}}
+
+
+
+Please provide the next level of subtasks for the [Task to Break Down] using [Task Description] to get more details on task. 
+
+For each subtask, include the following properties:
+
+1. id: A unique identifier for the subtask
+2. text: A brief, descriptive title for the subtask
+3. description: A more detailed explanation of what the subtask entails
+4. level: The level of this subtask (parent task level + 1)
+5. is_actionable: Boolean (true/false) indicating if this subtask represents an action item
+6. execution_category: The type of task (e.g., "development", "testing", "documentation")
+7. state: The current status ("not_started")
+8. needs_revision: Boolean (initially set to false)
+9. llm_prompt: A suggested prompt to generate further subtasks or get more details
+10. associated_files: List of files that are likely to be related to this subtask
+11. estimated_time: An approximate time to complete this subtask
+12. dependencies: List of other subtasks (if any) that need to be completed before this one
+13. assigned_to: The role responsible for this subtask
+14. review_required: Boolean indicating if the subtask output needs review
+15. priority: Subtask priority ("high", "medium", "low")
+16. complexity: Subtask difficulty ("simple", "moderate", "complex")
+17. tags: Array of relevant keywords
+18. acceptance_criteria: List of criteria that define subtask completion
+19. resources: Links or references to helpful documentation or tools
+20. subtask_strategy: Approach for potentially breaking down this subtask further
+
+Please provide the result as a JSON array, where each object in the array represents a subtask with all the properties listed above.
+
+Focus on creating a comprehensive but manageable set of subtasks that directly contribute to completing the [Task to Break Down]. Ensure that the subtasks are specific, actionable, and aligned with FastAPI development best practices.
+
+Remember to consider the following in your breakdown:
+1. The specific requirements of the [Task to Break Down]
+2. The context provided by the [Parent Task] and [Sibling Tasks]
+3. The overall project context
+4. FastAPI-specific development patterns and best practices
+5. Python backend development principles
+6. Potential dependencies between subtasks
+7. Asynchronous programming considerations
+8. API security and performance best practices
+
+Aim to provide 3-7 subtasks unless the complexity of the [Task to Break Down] clearly warrants more or fewer.
+Please provide output only in json and don't add any extra text or character outside json.
+`;
+
+window.AJ_GPT.llm_prompts.API.CSharp.Task=``;
+window.AJ_GPT.llm_prompts.API.CSharp.SubTask=``;
+
+window.AJ_GPT.llm_prompts.DB.Sqlite.Task=``;
+window.AJ_GPT.llm_prompts.DB.Sqlite.SubTask=``;
+
+
+---
+File: task_analyser/js/rootFunctions.js
+---
+
+// This file contains functions for initializing the application
+
+$(function () {
+
+    function createInitialFlowchart() {
+        const task = $('#taskInput').val();
+
+        if (task.trim() === '') return;
+
+        // Save form values to userData before proceeding
+        window.AJ_GPT.userData.llmProvider = $('#llmProvider').val();
+        window.AJ_GPT.userData.llmModelName = $('#llmModelName').val();
+        window.AJ_GPT.userData.llmApiKey = $('#llmApiKey').val();
+        window.AJ_GPT.userData.llmApiEndpoint = $('#llmApiEndpoint').val();
+
+        // Save project info
+        window.AJ_GPT.userData.projectName = $('#txtCurrentProject').val();
+        window.AJ_GPT.userData.projectDesc = $('#txtCurrentProjectDesc').val();
+
+        // Set default task type if not set
+        if (!window.AJ_GPT.userData.taskType) {
+            window.AJ_GPT.userData.taskType = ['General'];
+        }
+
+        window.AJ_GPT.taskTree = window.AJ_GPT.treeDataManipulation.getNewNode('root', task, "Please try to create as many subtasks as possible which are quite reasonable and practical for the accomplishment of task", null);
+        window.AJ_GPT.renderFlowchart();
+        window.AJ_GPT.treeDataManipulation.createSubnodesFromTaskDivision('root', false);
+    }
+
+    function exportJson() {
+        const dataToExport = {
+            taskTree: window.AJ_GPT.taskTree,
+            llmConfig: {
+                provider: window.AJ_GPT.userData.llmProvider,
+                modelName: window.AJ_GPT.userData.llmModelName,
+                apiEndpoint: window.AJ_GPT.userData.llmApiEndpoint, // Save endpoint
+                taskType: window.AJ_GPT.userData.taskType
+                // API key is intentionally not saved
+            }
+        };
+        const jsonString = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'task_tree.json'; // Keeping filename as task_tree.json
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importJson() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = readerEvent => {
+                try {
+                    const content = readerEvent.target.result;
+                    const importedData = JSON.parse(content);
+
+                    if (importedData.taskTree && importedData.llmConfig) {
+                        // New format with taskTree and llmConfig
+                        window.AJ_GPT.taskTree = importedData.taskTree;
+                        window.AJ_GPT.userData.llmProvider = importedData.llmConfig.provider || 'Groq';
+                        window.AJ_GPT.userData.llmModelName = importedData.llmConfig.modelName || 'llama3-70b-8192';
+                        window.AJ_GPT.userData.llmApiEndpoint = importedData.llmConfig.apiEndpoint || '';
+                        window.AJ_GPT.userData.taskType = importedData.llmConfig.taskType || ['General'];
+
+                        // Update UI elements
+                        $('#llmProvider').val(window.AJ_GPT.userData.llmProvider);
+                        $('#llmModelName').val(window.AJ_GPT.userData.llmModelName);
+                        $('#llmApiEndpoint').val(window.AJ_GPT.userData.llmApiEndpoint);
+                        $('#llmApiKey').val(''); // Clear API key field
+
+                    } else {
+                        // Old format (just the task tree)
+                        window.AJ_GPT.taskTree = importedData;
+                        // Set default LLM config for old format imports
+                        window.AJ_GPT.userData.llmProvider = 'Groq';
+                        window.AJ_GPT.userData.llmModelName = 'llama3-70b-8192';
+                        window.AJ_GPT.userData.llmApiEndpoint = '';
+                        window.AJ_GPT.userData.taskType = ['General'];
+                        
+                        // Update UI elements with defaults
+                        $('#llmProvider').val(window.AJ_GPT.userData.llmProvider);
+                        $('#llmModelName').val(window.AJ_GPT.userData.llmModelName);
+                        $('#llmApiEndpoint').val(window.AJ_GPT.userData.llmApiEndpoint);
+                        $('#llmApiKey').val('');
+                    }
+                    
+                    window.AJ_GPT.renderFlowchart(); // Update flowchart view
+                    $('#llmProvider').trigger('change'); // Trigger change to update endpoint visibility
+
+                } catch (error) {
+                    console.error('Error parsing JSON or processing imported data:', error);
+                    alert('Invalid JSON file or error processing data.');
+                }
+            }
+            reader.readAsText(file);
+        }
+        input.click();
+    }
+
+    $('#submitTask').on("click", createInitialFlowchart);
+    $('#exportJson').on("click", exportJson);
+    $('#importJson').on("click", importJson);
+
+    // Event Listener for llmProvider change
+    $('#llmProvider').on('change', function() {
+        // Assuming the llmApiEndpoint input field is directly inside a div.col-md-6
+        // If the value is "Other (Manual Endpoint)", show the container of llmApiEndpoint, otherwise hide it.
+        const apiEndpointContainer = $('#llmApiEndpoint').closest('.col-md-6'); 
+        if ($(this).val() === 'Other (Manual Endpoint)') {
+            apiEndpointContainer.show();
+        } else {
+            apiEndpointContainer.hide();
+        }
+    });
+    // Trigger it once on load to set initial state
+    // Also, ensure current values from window.AJ_GPT.userData are populated on load
+    if (window.AJ_GPT && window.AJ_GPT.userData) {
+        $('#llmProvider').val(window.AJ_GPT.userData.llmProvider || 'Groq');
+        $('#llmModelName').val(window.AJ_GPT.userData.llmModelName || 'llama3-70b-8192');
+        $('#llmApiKey').val(window.AJ_GPT.userData.llmApiKey || ''); // Should be empty by default
+        $('#llmApiEndpoint').val(window.AJ_GPT.userData.llmApiEndpoint || '');
+    }
+    $('#llmProvider').trigger('change');
+
+});
+
+
+
+---
+File: task_analyser/js/serverCalls.js
+---
+
+// This file contains functions for making server calls (now significantly reduced)
+$(function () {
+    
+    // function simulateApiCall(task, options = {}) {
+    //     return new Promise((resolve) => {
+    //         setTimeout(() => {
+    //             console.log("API call options:", options);
+    //             const subtasks = [
+    //                 `Subtask 1 of "${task}"`,
+    //                 `Subtask 2 of "${task}"`,
+    //                 `Subtask 3 of "${task}"`,
+    //             ];
+    //             resolve(subtasks);
+    //         }, 500);
+    //     });
+    // }
+
+    // function getTopics(username, password, success_callback, error_callback) {
+    //     let msg = {
+    //         username: username,
+    //         password: password,
+    //     };
+    //     $.ajax({
+    //         url: "/master/get_topics",
+    //         type: "GET",
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    // function getUserProjects(user_id, success_callback, error_callback) {
+    //     $.ajax({
+    //         url: "/user/get_user_projects/" + user_id.toString(),
+    //         type: "GET",
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    // function getUserSessions(user_id, success_callback, error_callback) {
+    //     $.ajax({
+    //         url: "/user/get_user_sessions/" + user_id.toString(),
+    //         type: "GET",
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    // function login_user(username, password, success_callback, error_callback) {
+    //     let msg = {
+    //         username: username,
+    //         password: password,
+    //     };
+    //     $.ajax({
+    //         url: "/user/login_user",
+    //         type: "POST",
+    //         contentType: "application/json",
+    //         data: JSON.stringify(msg),
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    // function register_user(
+    //     username,
+    //     password,
+    //     persona,
+    //     success_callback,
+    //     error_callback
+    // ) {
+    //     let msg = {
+    //         username: username,
+    //         password: password,
+    //         persona: persona,
+    //     };
+    //     $.ajax({
+    //         url: "/user/register_user",
+    //         type: "POST",
+    //         contentType: "application/json",
+    //         data: JSON.stringify(msg),
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    // function createSession(
+    //     user_id,
+    //     topic_id,
+    //     sub_topic_id,
+    //     project_id,
+    //     project_name,
+    //     project_desc,
+    //     session_name,
+    //     success_callback,
+    //     error_callback
+    // ) {
+    //     let msg = {
+    //         user_id: user_id,
+    //         topic_id: topic_id,
+    //         sub_topic_id: sub_topic_id,
+    //         project_id: project_id,
+    //         project_name: project_name,
+    //         project_desc: project_desc,
+    //         session_name: session_name,
+    //     };
+    //     $.ajax({
+    //         url: "/user/create_user_session",
+    //         type: "POST",
+    //         contentType: "application/json",
+    //         data: JSON.stringify(msg),
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    /*
+    function createPrompt(
+        task_type,
+        is_root,
+        task_summary,
+        task_description,
+        project_desc,
+        parent_task_desc,
+        siblings_desc,
+        options = {}
+    ) {
+
+        var taskLeafNode=window.AJ_GPT.llm_prompts[task_type[0]];
+        for (let index = 1; index < task_type.length; index++) {
+            taskLeafNode = taskLeafNode[task_type[index]];            
+        }
+
+        
+
+        var content = "";
+        if (is_root) {
+            content=taskLeafNode.Task.replace('{{Task_Summary}}', task_summary);
+            content=content.replace('{{Task_Description}}', task_description);            
+        }
+        else
+        {
+            content=taskLeafNode.SubTask.replace('{{Task_Summary}}', task_summary);
+            content=content.replace('{{Task_Description}}', task_description);
+            content=content.replace('{{Project_Context}}', project_desc);
+            content=content.replace('{{Parent_Task}}', parent_task_desc);
+            content=content.replace('{{Sibling_Tasks}}', siblings_desc);            
+        }
+
+        console.log(content)
+
+
+        // let chatMessage = {
+        //     user_id: "abhijit",
+        //     session_name: "random thoughts1",
+        //     session_folder: "",
+        //     message: JSON.stringify(prompt),
+        //     timestamp: new Date().toISOString(),
+        // };
+        
+        prompt = [
+            // {
+            //     role: "system",
+            //     content:
+            //         "You are an expert assistant. Please provide responses to user queries in step by step manner as json object which has one property for summary, another for description and last one as task_steps which should be child json array with each element having two properties namely summary, description",
+            // },
+            {
+                role: "user",
+                content: content
+            }
+        ];
+
+        return prompt;
+    }
+    */
+
+    /*
+    function subDivideTask(
+        task_type,
+        is_root,
+        task_summary,
+        task_description,
+        project_desc,
+        parent_task_desc,
+        siblings_desc,
+        options = {},
+        success_callback,
+        error_callback
+    ) {
+        prompt = createPrompt( // This would now call the old createPrompt if it wasn't commented out
+            task_type,
+            is_root,
+            task_summary,
+            task_description,
+            project_desc,
+            parent_task_desc,
+            siblings_desc,
+            options
+        );
+
+
+        let chatMessage = {
+            prompt: JSON.stringify(prompt),
+            provider: "Groq", // This was hardcoded, now LLM details come from userData
+            model: "llama3-70b-8192",
+        };
+
+        $.ajax({
+            url: "/task/get_sub_tasks", // This was a backend endpoint
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(chatMessage),
+            success: function (response) {
+                console.log(response);
+                success_callback(response, chatMessage); // chatMessage here was the prompt and provider details
+                //simulateBotResponse(response.message);
+            },
+            error: function (xhr, status, error) {
+                console.log("Error: " + xhr.responseJSON.error);
+                error_callback(xhr, status, error);
+            },
+        });
+    }
+    */
+
+    function saveTaskTree(taskTree) {
+        // Placeholder: In a real application, this would save to local storage or a file
+        console.log("Saving task tree (placeholder):", taskTree);
+        // Example: localStorage.setItem('taskTreeData', JSON.stringify(taskTree));
+        return Promise.resolve({ success: true });
+    }
+
+    function loadTaskTree() {
+        // Placeholder: In a real application, this would load from local storage or a file
+        console.log("Loading task tree (placeholder)");
+        // Example: 
+        // const storedTree = localStorage.getItem('taskTreeData');
+        // if (storedTree) {
+        //     return Promise.resolve(JSON.parse(storedTree));
+        // }
+        return Promise.resolve({ id: "root", text: "New Project Root", children: [], properties: { desc: "Root description" } });
+    }
+
+    // function get_chat_response(user_message, success_callback, error_callback) {
+    //     prompt = [
+    //         {
+    //             role: "system",
+    //             content:
+    //                 "You are an expert assistant. Please provide responses to user queries in step by step manner as json object which has one property for summary, another for description and last one as task steps which should be child json array with each element having two properties namely summary, description",
+    //         },
+    //         {
+    //             role: "user",
+    //             content:
+    //                 "Please provide step by step actions to accomplish this task: " +
+    //                 user_message,
+    //         },
+    //     ];
+
+    //     // let chatMessage = {
+    //     //     user_id: "abhijit",
+    //     //     session_name: "random thoughts1",
+    //     //     session_folder: "",
+    //     //     message: JSON.stringify(prompt),
+    //     //     timestamp: new Date().toISOString(),
+    //     // };
+
+    //     let chatMessage = {
+    //         prompt: JSON.stringify(prompt),
+    //         provider: "Ollama",
+    //         model: "",
+    //     };
+
+    //     $.ajax({
+    //         url: "/task/get_sub_tasks",
+    //         type: "POST",
+    //         contentType: "application/json",
+    //         data: JSON.stringify(chatMessage),
+    //         success: function (response) {
+    //             console.log(response);
+    //             success_callback(response);
+    //             //simulateBotResponse(response.message);
+    //         },
+    //         error: function (xhr, status, error) {
+    //             console.log("Error: " + xhr.responseJSON.error);
+    //             error_callback();
+    //         },
+    //     });
+    // }
+
+    serverCalls = {};
+
+    // serverCalls.getTopics = getTopics;
+    // serverCalls.getUserProjects = getUserProjects;
+    // serverCalls.getUserSessions = getUserSessions;
+    // serverCalls.register_user = register_user;
+    // serverCalls.login_user = login_user;
+    // serverCalls.createSession = createSession;
+    // serverCalls.subDivideTask = subDivideTask; // Replaced by llmService.subDivideTaskLLM
+    serverCalls.saveTaskTree = saveTaskTree;
+    serverCalls.loadTaskTree = loadTaskTree;
+    // serverCalls.get_chat_response = get_chat_response;
+    window.AJ_GPT.serverCalls = serverCalls;
+});
+
+
+
+---
+File: task_analyser/js/sidebar.js
+---
+
+$(document).ready(function() {
+    $('.toggleSidebar').click(function() {
+        var sidebarId = $(this).data('sidebar');
+        $('#' + sidebarId).toggleClass('collapsed expanded');
+        $(this).find('i').toggleClass('fa-chevron-right fa-chevron-left');
+        
+        if ($('#' + sidebarId).hasClass('expanded')) {
+            $('#' + sidebarId + ' .nav-link span').fadeIn(300);
+        } else {
+            $('#' + sidebarId + ' .nav-link span').fadeOut(300);
+        }
+    });
+});
+
+
+---
+File: task_analyser/js/treeDataManipulation.js
+---
+
+// Tree manipulation functions using jQuery
+
+$(document).ready(function () {
+    let nodeCounter = 0;
+
+    // Function to generate a unique ID
+    function generateUniqueId() {
+        nodeCounter++;
+        return `node-${nodeCounter}`;
+    }
+
+    function getNewNode(id, text, desc, prompt_and_response) {
+        var taskobj = {
+            id: id,
+            text: text,
+            description: desc,
+            // level: 1,
+            // is_actionable: false,
+            // execution_category: "planning",
+            // state: "not_started",
+            // needs_revision: false,
+            // llm_prompt: "",
+            // associated_files: [],
+            // estimated_time: "2 days",
+            // dependencies: [],
+            // assigned_to: "User",
+            // review_required: false,
+            // priority: "medium",
+            // complexity: "simple",
+            // tags: [],
+            // acceptance_criteria: [],
+            // resources: [],
+            // subtask_strategy: "",
+            children: [],
+            properties: {},
+            prompts_and_responses: [],
+        };
+        if (prompt_and_response) {
+            taskobj.prompts_and_responses.push(prompt_and_response);
+        }
+        return taskobj;
+    }
+
+    // Function to add a child node
+    function addChildNode(parentId, text, node_desc, prompt_and_response) { // Changed 'desc' to 'node_desc' to avoid conflict
+        const newId = generateUniqueId();
+        const newNode = getNewNode(newId, text, node_desc, prompt_and_response);
+
+        const parentNode = findNodeById(parentId);
+        if (parentNode) {
+            parentNode.children.push(newNode);
+            updateTreeView();
+            return newId;
+        } else {
+            console.error("Parent node not found");
+            return null;
+        }
+    }
+
+    // Function to add a sibling node below
+    function addSiblingNodeBelow(siblingId, text, node_desc, prompt_and_response) { // Changed 'desc' to 'node_desc'
+        const newId = generateUniqueId();
+        const newNode = getNewNode(newId, text, node_desc, prompt_and_response);
+
+        const siblingNode = findNodeById(siblingId);
+        if (siblingNode) {
+            const parentNode = findParentNode(siblingId);
+            if (parentNode) {
+                const siblingIndex = parentNode.children.findIndex(
+                    (child) => child.id === siblingId
+                );
+                parentNode.children.splice(siblingIndex + 1, 0, newNode);
+                updateTreeView();
+                return newId;
+            } else {
+                console.error("Parent of sibling node not found");
+                return null;
+            }
+        } else {
+            console.error("Sibling node not found");
+            return null;
+        }
+    }
+
+    // Function to add a sibling node above
+    function addSiblingNodeAbove(siblingId, text, node_desc, prompt_and_response) { // Changed 'desc' to 'node_desc'
+        const newId = generateUniqueId();
+        const newNode = getNewNode(newId, text, node_desc, prompt_and_response);
+
+        const siblingNode = findNodeById(siblingId);
+        if (siblingNode) {
+            const parentNode = findParentNode(siblingId);
+            if (parentNode) {
+                const siblingIndex = parentNode.children.findIndex(
+                    (child) => child.id === siblingId
+                );
+                parentNode.children.splice(siblingIndex, 0, newNode);
+                updateTreeView();
+                return newId;
+            } else {
+                console.error("Parent of sibling node not found");
+                return null;
+            }
+        } else {
+            console.error("Sibling node not found");
+            return null;
+        }
+    }
+
+    // Function to add a property to a node
+    function addProperty(nodeId, key, value) {
+        const node = findNodeById(nodeId);
+        if (node) {
+            node.properties[key] = value;
+            updateTreeView();
+            return true;
+        } else {
+            console.error("Node not found");
+            return false;
+        }
+    }
+
+    // Function to move a node up
+    function moveNodeUp(nodeId) {
+        const parentNode = findParentNode(nodeId);
+        if (parentNode) {
+            const nodeIndex = parentNode.children.findIndex(
+                (child) => child.id === nodeId
+            );
+            if (nodeIndex > 0) {
+                const temp = parentNode.children[nodeIndex];
+                parentNode.children[nodeIndex] =
+                    parentNode.children[nodeIndex - 1];
+                parentNode.children[nodeIndex - 1] = temp;
+                updateTreeView();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Function to move a node down
+    function moveNodeDown(nodeId) {
+        const parentNode = findParentNode(nodeId);
+        if (parentNode) {
+            const nodeIndex = parentNode.children.findIndex(
+                (child) => child.id === nodeId
+            );
+            if (nodeIndex < parentNode.children.length - 1) {
+                const temp = parentNode.children[nodeIndex];
+                parentNode.children[nodeIndex] =
+                    parentNode.children[nodeIndex + 1];
+                parentNode.children[nodeIndex + 1] = temp;
+                updateTreeView();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Function to move a node to parent level
+    function moveNodeToParentLevel(nodeId) {
+        const node = findNodeById(nodeId);
+        const parentNode = findParentNode(nodeId);
+        const grandparentNode = findParentNode(parentNode.id);
+
+        if (node && parentNode && grandparentNode) {
+            // Remove node from its current parent
+            parentNode.children = parentNode.children.filter(
+                (child) => child.id !== nodeId
+            );
+
+            // Add node to grandparent's children
+            const parentIndex = grandparentNode.children.findIndex(
+                (child) => child.id === parentNode.id
+            );
+            grandparentNode.children.splice(parentIndex + 1, 0, node);
+
+            updateTreeView();
+            return true;
+        }
+        return false;
+    }
+
+    // Function to delete a node
+    function deleteNode(nodeId) {
+        const parentNode = findParentNode(nodeId);
+        if (parentNode) {
+            parentNode.children = parentNode.children.filter(
+                (child) => child.id !== nodeId
+            );
+            updateTreeView();
+            return true;
+        }
+        return false;
+    }
+
+    // Helper function to find a node by ID
+    function findNodeById(id, node = window.AJ_GPT.taskTree) {
+        console.log(node);
+        if (node.id === id) {
+            return node;
+        }
+        if (node.children) { // Ensure children exist before iterating
+            for (let child of node.children) {
+                const found = findNodeById(id, child);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    // Helper function to find the parent of a node
+    function findParentNode(id, node = window.AJ_GPT.taskTree, parent = null) {
+        // console.log(node); // Reduced logging for cleaner console
+        if (node.id === id) {
+            return parent;
+        }
+        if (node.children) { // Ensure children exist
+            for (let child of node.children) {
+                const found = findParentNode(id, child, node);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    // Function to change node data (text and properties)
+    function updateNodeData(nodeId, newText, newProperties) {
+        const node = findNodeById(nodeId);
+        if (node) {
+            if (newText) {
+                node.text = newText;
+            }
+            if (newProperties) {
+                // Merge new properties with existing ones
+                node.properties = { ...node.properties, ...newProperties };
+            }
+            updateTreeView();
+            return true;
+        } else {
+            console.error("Node not found");
+            return false;
+        }
+    }
+
+    // Function to create subnodes based on task division
+    async function createSubnodesFromTaskDivision(
+        nodeId,
+        useCustomOption = false
+    ) {
+        var is_root = nodeId == "root";
+        var parentNode = findNodeById(nodeId);
+        if (!parentNode) {
+            console.error("Parent node not found");
+            return false;
+        }
+
+        // Determine parent task description
+        let parent_task_description = "";
+        if (!is_root) {
+            parent_task_description = parentNode.properties.description || parentNode.text;
+        }
+
+        try {
+            // Call the new LLM service
+            window.AJ_GPT.llmService.subDivideTaskLLM(
+                window.AJ_GPT.userData.taskType,    // task_type
+                is_root,                            // is_root
+                parentNode.text,                    // task_summary
+                parentNode.properties.description || parentNode.text, // task_description
+                window.AJ_GPT.userData.projectDesc, // project_desc
+                parent_task_description,            // parent_task_desc
+                "",                                 // siblings_desc (empty for now)
+                parentNode.properties,              // options
+                function (llm_content, prompt_sent) { // success_callback
+                    try {
+                        const subtasks = JSON.parse(llm_content);
+                        
+                        if (parentNode.prompts_and_responses === undefined) {
+                            parentNode.prompts_and_responses = [];
+                        }
+                        parentNode.prompts_and_responses.push(
+                            { prompt: prompt_sent, response: llm_content }
+                        );
+
+                        if (Array.isArray(subtasks)) {
+                            subtasks.forEach((subtask) => {
+                                const newChildId = addChildNode(
+                                    nodeId,
+                                    subtask.text || subtask.summary || "Untitled Subtask", // Accommodate different possible key names for summary
+                                    subtask.desc || subtask.description || "", // Accommodate different possible key names for description
+                                    null
+                                );
+                                if (newChildId) {
+                                    addProperty(
+                                        newChildId,
+                                        "taskDivisionType",
+                                        useCustomOption ? "custom" : "default"
+                                    );
+                                    // Add all properties from the subtask object returned by LLM
+                                    Object.entries(subtask).forEach(
+                                        ([key, value]) => {
+                                            if (key !== 'children') { // Avoid overwriting children array if present
+                                                addProperty(newChildId, key, value);
+                                            }
+                                        }
+                                    );
+                                    // Ensure 'description' property is set if 'desc' was primary
+                                    if (subtask.desc && !subtask.description) {
+                                        addProperty(newChildId, "description", subtask.desc);
+                                    }
+                                }
+                            });
+                        } else {
+                            console.error("LLM response is not an array of subtasks:", subtasks);
+                            alert("Error: LLM response was not in the expected format (array of subtasks). Check console for details.");
+                        }
+                        updateTreeView();
+                    } catch (e) {
+                        console.error("Error parsing LLM response or processing subtasks:", e);
+                        console.error("Raw LLM content:", llm_content);
+                        alert("Error: Could not parse the subtasks from LLM response. Check console for details. Raw response: " + llm_content);
+                    }
+                },
+                function (error_message) { // error_callback
+                    console.error("LLM API Error in createSubnodesFromTaskDivision:", error_message);
+                    alert("Failed to get subtasks from LLM: " + error_message);
+                }
+            );
+            return true;
+        } catch (error) {
+            console.error("Error calling subDivideTaskLLM:", error);
+            return false;
+        }
+    }
+
+    // Function to prompt user for default or custom task division
+    function promptForTaskDivision(nodeId) {
+        const useCustomOption = confirm(
+            "Do you want to use custom task division? Click OK for custom, Cancel for default."
+        );
+        createSubnodesFromTaskDivision(nodeId, useCustomOption);
+    }
+
+    // Function to update the tree view (placeholder for UI update)
+    function updateTreeView() {
+        //console.log("Tree structure updated:", JSON.stringify(window.AJ_GPT.taskTree, null, 2));
+        // Here you would update your UI to reflect the new tree structure
+
+        window.AJ_GPT.renderFlowchart();
+        //saveTaskTree(taskTree);
+    }
+
+    // These functions are now available globally
+    treeDataManipulation = {};
+    treeDataManipulation.findNodeById = findNodeById;
+    treeDataManipulation.addChildNode = addChildNode;
+    treeDataManipulation.addSiblingNodeBelow = addSiblingNodeBelow;
+    treeDataManipulation.addSiblingNodeAbove = addSiblingNodeAbove;
+    treeDataManipulation.addProperty = addProperty;
+    treeDataManipulation.moveNodeUp = moveNodeUp;
+    treeDataManipulation.moveNodeDown = moveNodeDown;
+    treeDataManipulation.moveNodeToParentLevel = moveNodeToParentLevel;
+    treeDataManipulation.deleteNode = deleteNode;
+    treeDataManipulation.updateNodeData = updateNodeData;
+    treeDataManipulation.createSubnodesFromTaskDivision =
+        createSubnodesFromTaskDivision;
+    treeDataManipulation.promptForTaskDivision = promptForTaskDivision;
+    treeDataManipulation.getNewNode = getNewNode;
+    window.AJ_GPT.treeDataManipulation = treeDataManipulation;
+});
+
+
+
+---
+File: task_analyser/index.html
+---
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Task Flowchart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/sidebar.css" rel="stylesheet" />
+    <link href="css/styles.css" rel="stylesheet" />
+    <style>
+        .hidden {
+            display: none;
+        }
+        
+        .input-group .btn {
+            border-color: #6c757d;
+        }
+        
+        .input-group .btn:hover {
+            background-color: #495057;
+        }
+
+        .modal-body {
+            color: #333;
+        }
+
+        .form-label {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .btn-link {
+            color: #0056b3;
+        }
+
+        #divnotLoggedIn {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        #divNotLoggedIn .card-body {
+            color: #333 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="content">
+        <div id="divLoggedIn" class="container mt-4">
+            <h1 class="mb-4">Advanced Task Flowchart Creator</h1>
+            <div class="mb-3">
+                <label for="txtCurrentProject" class="form-label text-light">Project Name:</label>
+                <input type="text" class="form-control bg-dark text-light" id="txtCurrentProject" placeholder="Enter project name">
+            </div>
+            <div class="mb-3">
+                <label for="txtCurrentProjectDesc" class="form-label text-light">Project Description:</label>
+                <textarea class="form-control bg-dark text-light" id="txtCurrentProjectDesc" rows="2" placeholder="Enter project description"></textarea>
+            </div>
+
+            <!-- LLM Configuration Section -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="llmProvider" class="form-label text-light">LLM Provider:</label>
+                    <select id="llmProvider" class="form-select form-select-sm bg-dark text-light">
+                        <option value="OpenAI">OpenAI</option>
+                        <option value="Groq">Groq</option>
+                        <option value="Ollama">Ollama</option>
+                        <option value="Other">Other (Manual Endpoint)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="llmModelName" class="form-label text-light">Model Name:</label>
+                    <input type="text" id="llmModelName" class="form-control form-control-sm bg-dark text-light">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="llmApiKey" class="form-label text-light">API Key:</label>
+                    <div class="input-group">
+                        <input type="password" id="llmApiKey" class="form-control form-control-sm bg-dark text-light" placeholder="Enter API key">
+                        <button class="btn btn-outline-secondary bg-dark" type="button" id="toggleApiKey">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="llmApiEndpoint" class="form-label text-light">API Endpoint (if Other):</label>
+                    <input type="text" id="llmApiEndpoint" class="form-control form-control-sm bg-dark text-light" style="display: none;">
+                </div>
+            </div>
+            <!-- End LLM Configuration Section -->
+
+            <div class="mb-3">
+                <label for="taskInput" class="form-label text-light">Enter overall task summary:</label>
+                <textarea class="form-control bg-dark text-light" id="taskInput" rows="3"></textarea>
+            </div>
+            <button id="submitTask" class="btn btn-primary mb-4">Start dissembling :)</button>
+            <div id="flowchart"></div>
+            <button id="exportJson" class="btn btn-secondary mt-4">Export JSON</button>
+            <button id="importJson" class="btn btn-secondary mt-4 ms-2">Import JSON</button>
+        </div>
+        <div id="divNotLoggedIn" class="container mt-4 hidden">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <h2 class="mb-4">Welcome to Advanced Project Dissembler</h2>
+                    <p class="lead mb-4">Create, manage, divide and visualize tasks for your projects as planned steps/sub-steps with full control and integrated actions.</p>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Why use our Flowchart Creator?</h5>
+                            <ul class="list-unstyled">
+                                <li>✅ Intuitive task breakdown</li>
+                                <li>✅ Visual representation of workflows</li>
+                                <li>✅ Easy export and import of your flowcharts</li>
+                                <li>✅ Collaborative features for team projects coming soon</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="mb-4">To start breaking down your projects, please click to proceed.</p>
+                    <!-- <button id="openAuthModal" class="btn btn-primary btn-lg">Proceed</button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Popup for subdivision options -->
+    <div id="subdividePopup" class="popup">
+        <div class="popup-content">
+            <h2>Subdivision Options</h2>
+            <select id="subdivideOption1" class="form-select mb-2">
+                <option value="option1">Option 1</option>
+                <option value="option2">Option 2</option>
+                <option value="option3">Option 3</option>
+            </select>
+            <select id="subdivideOption2" class="form-select mb-2">
+                <option value="optionA">Option A</option>
+                <option value="optionB">Option B</option>
+                <option value="optionC">Option C</option>
+            </select>
+            <button id="subdivideSubmit" class="btn btn-primary">Submit</button>
+            <button id="subdivideCancel" class="btn btn-secondary ms-2">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Edit Node Modal -->
+    <div class="modal fade" id="editNodeModal" tabindex="-1" aria-labelledby="editNodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNodeModalLabel">Edit Node</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editNodeForm">
+                        <input type="hidden" id="editNodeId">
+                        <div class="mb-3">
+                            <label for="editNodeText" class="form-label">Node Text</label>
+                            <input type="text" class="form-control" id="editNodeText" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editNodeProperties" class="form-label">Properties (JSON)</label>
+                            <textarea class="form-control" id="editNodeProperties" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveEditNode">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Node Modal -->
+    <div class="modal fade" id="addNodeModal" tabindex="-1" aria-labelledby="addNodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addNodeModalLabel">Add Node</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addNodeForm">
+                        <div class="mb-3">
+                            <label for="addNodeParent" class="form-label">Parent Node ID</label>
+                            <input type="text" class="form-control" id="addNodeParent" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addNodeText" class="form-label">Node Text</label>
+                            <input type="text" class="form-control" id="addNodeText" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addNodeProperties" class="form-label">Properties (JSON)</label>
+                            <textarea class="form-control" id="addNodeProperties" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveAddNode">Add Node</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <!--
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalLabel">Authentication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    -->
+                    <!-- Login Form -->
+                    <!-- <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                        <div class="mb-3 hidden" id="personaField">
+                            <label for="persona" class="form-label">Persona</label>
+                            <input type="text" class="form-control" id="persona">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button type="button" class="btn btn-link" id="toggleRegister">Not registered? Sign up</button>
+                    </form> -->
+
+                    <!-- Topic Selection -->
+                    <!--
+                    <div id="topicSelection" class="hidden">
+                        <h5 class="mt-3">Select a Topic</h5>
+                        <select id="ddlTopic" class="form-select mb-3">
+                            <option value="0"> ---Select--- </option>
+                        </select>
+                        <h5 class="mt-3">Select a Sub-Topic</h5>
+                        <select id="ddlSubTopic" class="form-select mb-3">
+                            <option value="0"> ---Select--- </option>
+                        </select>
+                        <h5 class="mt-3">Select an Existing Project</h5>
+                        <select id="ddlUserProject" class="form-select mb-3">
+                            <option value="0"> ---Select--- </option>
+                        </select>
+                        <div class="mb-3">
+                            <label for="txtUserProject" class="form-label">Or Enter new project name</label>
+                            <input type="text" class="form-control" id="txtUserProject">
+                        </div>
+                        <div class="mb-3">
+                            <label for="txtUserProjectDesc" class="form-label">Enter new project description</label>
+                            <textarea class="form-control" id="txtUserProjectDesc" ></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="txtUserSession" class="form-label">Purpose for current session</label>
+                            <input type="text" class="form-control" id="txtUserSession">
+                        </div>
+                        <button id="startSession" class="btn btn-success">Start Session</button>
+                    </div>
+                    -->
+                <!--
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script> -->
+    <script src="js/globalData.js"></script>
+    <script src="js/prompts.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/serverCalls.js"></script>
+    <script src="js/llmService.js"></script> 
+    <script src="js/rootFunctions.js"></script>
+    <script src="js/flowchartRenderer.js"></script>
+    <script src="js/treeDataManipulation.js"></script>
+    <!-- <script src="eventHandlers.js"></script>-->
+    <script src="js/popupHandler.js"></script>
+    <script src="js/popupHandlerNodeAddEdit.js"></script>
+    <script>
+        // Toggle API key visibility
+        document.getElementById('toggleApiKey').addEventListener('click', function() {
+            const apiKeyInput = document.getElementById('llmApiKey');
+            const icon = this.querySelector('i');
+            
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                apiKeyInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    </script>
+</body>
+
+</html>

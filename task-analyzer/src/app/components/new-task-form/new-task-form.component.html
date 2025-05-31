@@ -1,0 +1,62 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+      <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h4 mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Task Analysis</h2>
+        </div>
+        <div class="card-body p-4">
+          <form [formGroup]="newTaskForm" (ngSubmit)="onSubmit()">
+            <div class="mb-3">
+              <label for="projectName" class="form-label">Project Name <span class="text-danger">*</span></label>
+              <input type="text" id="projectName" class="form-control" formControlName="projectName"
+                placeholder="e.g., E-commerce Platform UI">
+              <div *ngIf="newTaskForm.get('projectName')?.invalid && newTaskForm.get('projectName')?.touched"
+                class="text-danger form-text">
+                Project name is required.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="projectDescription" class="form-label">Project Description</label>
+              <textarea id="projectDescription" class="form-control" formControlName="projectDescription" rows="3"
+                placeholder="Briefly describe the overall project or goal."></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="overallTaskSummary" class="form-label">Overall Task Summary <span class="text-danger">*</span></label>
+              <textarea id="overallTaskSummary" class="form-control" formControlName="overallTaskSummary" rows="4"
+                placeholder="Describe the main task you want to analyze and break down. This will be your root task."></textarea>
+              <div *ngIf="newTaskForm.get('overallTaskSummary')?.invalid && newTaskForm.get('overallTaskSummary')?.touched"
+                class="text-danger form-text">
+                Overall task summary is required.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="targetTechnologyStack" class="form-label">Target Technology Stack (Optional)</label>
+              <input type="text" id="targetTechnologyStack" class="form-control" formControlName="targetTechnologyStack"
+                placeholder="e.g., Angular, Node.js, PostgreSQL (comma-separated)">
+              <div class="form-text">Helps the LLM provide more relevant sub-tasks.</div>
+            </div>
+
+            <div *ngIf="errorMessage" class="alert alert-danger mt-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-primary btn-lg" [disabled]="isLoading || newTaskForm.invalid">
+                <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <i *ngIf="!isLoading" class="fas fa-cogs me-2"></i>
+                Start Dissembling
+              </button>
+              <button type="button" class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="isLoading">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

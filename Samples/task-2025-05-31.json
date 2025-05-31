@@ -1,0 +1,57 @@
+{
+  "id": "task-1748707856738",
+  "text": "Create an ecommerce website to serve generally needed shopping requirements",
+  "description": "General purpose  ecommerce website",
+  "children": [
+    {
+      "id": "task-1748707856738-1748707872642-203",
+      "text": "Research",
+      "description": "Gather information and resources needed for this task.",
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      }
+    },
+    {
+      "id": "task-1748707856738-1748707872642-893",
+      "text": "Implementation",
+      "description": "Execute the core work required for this task.",
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      }
+    },
+    {
+      "id": "task-1748707856738-1748707872642-394",
+      "text": "Testing",
+      "description": "Verify that the implementation meets the requirements.",
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      }
+    },
+    {
+      "id": "task-1748707856738-1748707872642-763",
+      "text": "Documentation",
+      "description": "Document the process and results of this task.",
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      }
+    }
+  ],
+  "properties": {
+    "created": "2025-05-31T16:10:56.738Z",
+    "lastUpdated": "2025-05-31T16:11:12.643Z",
+    "projectName": "Generic ecommerce website",
+    "targetTechnologyStack": [
+      "React"
+    ],
+    "exportedAt": "2025-05-31T16:11:25.654Z"
+  },
+  "prompts_and_responses": []
+}

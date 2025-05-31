@@ -1,0 +1,111 @@
+{
+  "id": "task-1748707856738",
+  "text": "Create an ecommerce website to serve generally needed shopping requirements",
+  "description": "General purpose  ecommerce website",
+  "children": [
+    {
+      "id": "task-1748707856738-1748707872642-203",
+      "text": "Research",
+      "description": "Gather information and resources needed for this task.",
+      "children": [],
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      },
+      "prompts_and_responses": []
+    },
+    {
+      "id": "task-1748707856738-1748707872642-893",
+      "text": "Implementation",
+      "description": "Execute the core work required for this task.",
+      "children": [
+        {
+          "id": "task-1748707856738-1748707872642-893-1748708040149-621",
+          "text": "**Define Implementation Scope**",
+          "description": "* Identify the specific requirements and objectives that need to be accomplished during the implementation phase.\n* Clarify the scope of work, including any constraints or assumptions.",
+          "properties": {
+            "created": "2025-05-31T16:14:00.149Z",
+            "lastUpdated": "2025-05-31T16:14:00.149Z",
+            "source": "llm"
+          }
+        },
+        {
+          "id": "task-1748707856738-1748707872642-893-1748708040149-306",
+          "text": "**Develop Implementation Plan**",
+          "description": "* Create a detailed plan outlining the specific steps, tasks, and activities required to execute the implementation.\n* Establish timelines, milestones, and resource allocation.",
+          "properties": {
+            "created": "2025-05-31T16:14:00.149Z",
+            "lastUpdated": "2025-05-31T16:14:00.149Z",
+            "source": "llm"
+          }
+        },
+        {
+          "id": "task-1748707856738-1748707872642-893-1748708040150-295",
+          "text": "**Execute Implementation Tasks**",
+          "description": "* Carry out the tasks and activities outlined in the implementation plan.\n* Ensure that all necessary resources, including personnel, equipment, and materials, are available and utilized effectively.",
+          "properties": {
+            "created": "2025-05-31T16:14:00.150Z",
+            "lastUpdated": "2025-05-31T16:14:00.150Z",
+            "source": "llm"
+          }
+        },
+        {
+          "id": "task-1748707856738-1748707872642-893-1748708040150-64",
+          "text": "**Verify Implementation Results**",
+          "description": "* Validate that the implementation tasks have been completed successfully and meet the required objectives.\n* Conduct quality assurance and testing to ensure that the implementation is functional and meets the expected standards.\nAlternatively, here is the response in JSON format:\n```json\n[\n{\n\"title\": \"Define Implementation Scope\",\n\"description\": \"Identify the specific requirements and objectives that need to be accomplished during the implementation phase. Clarify the scope of work, including any constraints or assumptions.\"\n},\n{\n\"title\": \"Develop Implementation Plan\",\n\"description\": \"Create a detailed plan outlining the specific steps, tasks, and activities required to execute the implementation. Establish timelines, milestones, and resource allocation.\"\n},\n{\n\"title\": \"Execute Implementation Tasks\",\n\"description\": \"Carry out the tasks and activities outlined in the implementation plan. Ensure that all necessary resources, including personnel, equipment, and materials, are available and utilized effectively.\"\n},\n{\n\"title\": \"Verify Implementation Results\",\n\"description\": \"Validate that the implementation tasks have been completed successfully and meet the required objectives. Conduct quality assurance and testing to ensure that the implementation is functional and meets the expected standards.\"\n}\n]\n```",
+          "properties": {
+            "created": "2025-05-31T16:14:00.150Z",
+            "lastUpdated": "2025-05-31T16:14:00.150Z",
+            "source": "llm"
+          }
+        }
+      ],
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:14:00.151Z",
+        "source": "llm"
+      },
+      "prompts_and_responses": [
+        {
+          "prompt": "Please analyze the following task and break it down into 3-5 logical subtasks. For each subtask, provide a clear title and a brief description.\n\nTask: Implementation\nDescription: Execute the core work required for this task.\n\n\nPlease format your response as a list with numbered items (1., 2., etc.) where each item has a title followed by a description on the next lines. Alternatively, you can provide the response in JSON format with an array of objects, each with 'title' and 'description' fields.",
+          "response": "Here is the breakdown of the task into 3-5 logical subtasks:\n\n1. **Define Implementation Scope**\n\t* Identify the specific requirements and objectives that need to be accomplished during the implementation phase.\n\t* Clarify the scope of work, including any constraints or assumptions.\n\n2. **Develop Implementation Plan**\n\t* Create a detailed plan outlining the specific steps, tasks, and activities required to execute the implementation.\n\t* Establish timelines, milestones, and resource allocation.\n\n3. **Execute Implementation Tasks**\n\t* Carry out the tasks and activities outlined in the implementation plan.\n\t* Ensure that all necessary resources, including personnel, equipment, and materials, are available and utilized effectively.\n\n4. **Verify Implementation Results**\n\t* Validate that the implementation tasks have been completed successfully and meet the required objectives.\n\t* Conduct quality assurance and testing to ensure that the implementation is functional and meets the expected standards.\n\nAlternatively, here is the response in JSON format:\n\n```json\n[\n  {\n    \"title\": \"Define Implementation Scope\",\n    \"description\": \"Identify the specific requirements and objectives that need to be accomplished during the implementation phase. Clarify the scope of work, including any constraints or assumptions.\"\n  },\n  {\n    \"title\": \"Develop Implementation Plan\",\n    \"description\": \"Create a detailed plan outlining the specific steps, tasks, and activities required to execute the implementation. Establish timelines, milestones, and resource allocation.\"\n  },\n  {\n    \"title\": \"Execute Implementation Tasks\",\n    \"description\": \"Carry out the tasks and activities outlined in the implementation plan. Ensure that all necessary resources, including personnel, equipment, and materials, are available and utilized effectively.\"\n  },\n  {\n    \"title\": \"Verify Implementation Results\",\n    \"description\": \"Validate that the implementation tasks have been completed successfully and meet the required objectives. Conduct quality assurance and testing to ensure that the implementation is functional and meets the expected standards.\"\n  }\n]\n```"
+        }
+      ]
+    },
+    {
+      "id": "task-1748707856738-1748707872642-394",
+      "text": "Testing",
+      "description": "Verify that the implementation meets the requirements.",
+      "children": [],
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      },
+      "prompts_and_responses": []
+    },
+    {
+      "id": "task-1748707856738-1748707872642-763",
+      "text": "Documentation",
+      "description": "Document the process and results of this task.",
+      "children": [],
+      "properties": {
+        "created": "2025-05-31T16:11:12.642Z",
+        "lastUpdated": "2025-05-31T16:11:12.642Z",
+        "source": "llm"
+      },
+      "prompts_and_responses": []
+    }
+  ],
+  "properties": {
+    "created": "2025-05-31T16:10:56.738Z",
+    "lastUpdated": "2025-05-31T16:14:00.151Z",
+    "projectName": "Generic ecommerce website",
+    "targetTechnologyStack": [
+      "React"
+    ],
+    "exportedAt": "2025-05-31T16:14:22.474Z"
+  },
+  "prompts_and_responses": []
+}
