@@ -6,6 +6,8 @@ This document provides a technical overview of the Task Analyzer application, fo
 
 The Task Analyzer is a frontend-only application built using Angular. It is designed to help users analyze and break down complex tasks into manageable sub-tasks. The application can interact with various Large Language Model (LLM) providers through their APIs to assist in task breakdown. User data, specifically task analyses, can be saved to and loaded from local JSON files.
 
+For a detailed description of user-facing features and how to use the application, please refer to the [User Guide](User_Guide.md).
+
 ## Technologies Used
 
 Based on the project's root `README.md`:
