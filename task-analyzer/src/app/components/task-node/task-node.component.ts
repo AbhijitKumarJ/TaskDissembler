@@ -2,13 +2,17 @@ import { Component, Input, Output, EventEmitter, inject, HostListener } from '@a
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaskNode } from '../../models/task-node.interface';
+import { TASK_TYPES, TaskType, DEFAULT_TASK_TYPE_VALUE, getTaskTypeLabel } from '../../models/task-types';
 import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
+import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component';
+import { RationaleDisplayModalComponent } from '../rationale-display-modal/rationale-display-modal.component';
+import { AlternativeBreakdownModalComponent } from '../alternative-breakdown-modal/alternative-breakdown-modal.component';
 
 @Component({
   selector: 'app-task-node',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PromptEditModalComponent, RationaleDisplayModalComponent, AlternativeBreakdownModalComponent],
   templateUrl: './task-node.component.html',
   styleUrls: ['./task-node.component.scss']
 })
@@ -46,7 +50,22 @@ export class TaskNodeComponent {
   editingPropertiesJson: string = '';
   propertiesError: string | null = null;
   showProperties: boolean = false;
+  promptForReview: string | null = null;
+  showPromptPreviewModal: boolean = false;
+  isFetchingRationale: boolean = false;
+  showRationaleModal: boolean = false;
+  currentRationaleText: string | null = null;
+  // For Alternative Breakdowns
+  showAlternativeHintInput: boolean = false;
+  alternativeHint: string = '';
+  isFetchingAlternative: boolean = false;
+  currentAlternativeBreakdown: TaskNode[] | null = null;
+  showAlternativeModal: boolean = false; // To trigger modal in a later step
+  lastAlternativePromptAndResponse: { prompt: string, response: string } | null = null; // To store the P&R for the latest alternative
   
+  public readonly availableTaskTypes: TaskType[] = TASK_TYPES;
+  editingTaskType: string = '';
+
   private llmService = inject(LlmService);
   private notificationService = inject(NotificationService);
   
@@ -99,6 +118,7 @@ export class TaskNodeComponent {
   startEditing(): void {
     this.editingText = this.node.text;
     this.editingDescription = this.node.description || '';
+    this.editingTaskType = this.node.taskType || ''; // Initialize with node's taskType or empty string
     
     // Filter out system properties that shouldn't be edited directly
     const editableProperties = { ...this.node.properties };
@@ -144,6 +164,7 @@ export class TaskNodeComponent {
         ...this.node,
         text: this.editingText.trim(),
         description: this.editingDescription?.trim() || undefined,
+        taskType: this.editingTaskType === '' ? undefined : this.editingTaskType,
         properties: {
           ...parsedProperties,
           ...systemProperties
@@ -220,56 +241,67 @@ export class TaskNodeComponent {
   subdivide(): void {
     if (this.isSubdividing) return;
     
-    this.isSubdividing = true;
-    this.notificationService.notify(`Subdividing task "${this.node.text}"...`, 'info');
-    
     // Get the project context from the root node
     const projectContext = this.getProjectContext();
     
     // Create a prompt for the LLM
-    const prompt = this.createSubdividePrompt(projectContext);
-    
-    // Call the LLM service
-    this.llmService.analyzeTask(prompt, projectContext).subscribe({
+    this.promptForReview = this.createSubdividePrompt(projectContext);
+    this.showPromptPreviewModal = true;
+    // The rest of the logic (setting isSubdividing, calling LLM, etc.)
+    // will be handled in handlePromptReview after user confirmation.
+  }
+
+  handlePromptReview(action: 'confirm' | 'cancel', editedPrompt?: string): void {
+    if (action === 'cancel') {
+      this.showPromptPreviewModal = false;
+      this.promptForReview = null;
+      this.isSubdividing = false; // Reset subdividing state
+      return;
+    }
+
+    // action === 'confirm'
+    this.showPromptPreviewModal = false;
+    const finalPrompt = (editedPrompt && editedPrompt.trim().length > 0) ? editedPrompt : this.promptForReview;
+
+    if (!finalPrompt) {
+      this.notificationService.notify('Prompt is empty. Subdivision cancelled.', 'warn');
+      this.isSubdividing = false;
+      return;
+    }
+
+    this.isSubdividing = true;
+    this.notificationService.notify(`Subdividing task "${this.node.text}"...`, 'info');
+    const projectContext = this.getProjectContext(); // Recapture context just in case
+
+    this.llmService.analyzeTask(finalPrompt, projectContext).subscribe({
       next: (response) => {
         try {
-          // Process the LLM response to extract subtasks
           const subtasks = this.processLlmResponse(response);
-          
-          // Create a copy of the node with the new subtasks
           const updatedNode = { ...this.node };
-          
-          // Initialize children array if it doesn't exist
+
           if (!updatedNode.children) {
             updatedNode.children = [];
           }
-          
-          // Add the new subtasks to the children array
           updatedNode.children = [...updatedNode.children, ...subtasks];
-          
-          // Store the prompt and response in the node's prompts_and_responses array
+
           if (!updatedNode.prompts_and_responses) {
             updatedNode.prompts_and_responses = [];
           }
-          
+          // Ensure the finalPrompt (potentially edited) is stored
           updatedNode.prompts_and_responses.push({
-            prompt,
-            response
+            prompt: finalPrompt,
+            response,
+            timestamp: new Date().toISOString(),
+            type: 'subdivision'
           });
-          
-          // Update the lastUpdated timestamp
+
           if (!updatedNode.properties) {
             updatedNode.properties = {};
           }
           updatedNode.properties['lastUpdated'] = new Date().toISOString();
           
-          // Update the node
           this.nodeUpdated.emit(updatedNode);
-          
-          // Expand the node to show the new subtasks
           this.isExpanded = true;
-          
-          // Show a success notification
           this.notificationService.notify(`Successfully subdivided "${this.node.text}" into ${subtasks.length} subtasks.`, 'success');
         } catch (error) {
           console.error('Error processing LLM response:', error);
@@ -278,21 +310,182 @@ export class TaskNodeComponent {
       },
       error: (error) => {
         console.error('Error calling LLM service:', error);
-        
-        // Check if the error is related to missing API key
         if (error.message && error.message.includes('API key is required')) {
           this.notificationService.notify('API key is required. Please go to LLM Settings to configure your API key.', 'error');
         } else {
           this.notificationService.notify(`Error calling LLM service: ${error.message || 'Unknown error'}. Please check your settings and try again.`, 'error');
         }
-        
-        // For demo purposes, we'll still add some default subtasks if the user confirms
-        if (confirm('Would you like to add default subtasks instead?')) {
-          this.addDefaultSubtasks();
-        }
+        // Optionally, offer default subtasks on error
+        // if (confirm('Would you like to add default subtasks instead?')) {
+        //   this.addDefaultSubtasks();
+        // }
       },
       complete: () => {
         this.isSubdividing = false;
+      }
+    });
+    this.promptForReview = null; // Clear the reviewed prompt
+  }
+
+  getLlmRationale(): void {
+    if (!this.canGetRationale()) {
+      this.notificationService.notify('Rationale cannot be fetched for this task at this moment.', 'warn');
+      return;
+    }
+
+    // Double check, though canGetRationale should cover this.
+    if (!this.node.prompts_and_responses || this.node.prompts_and_responses.length === 0) {
+      console.error('No prompts and responses found, cannot fetch rationale.');
+      return;
+    }
+
+    this.isFetchingRationale = true;
+    this.notificationService.notify(`Fetching rationale for "${this.node.text}"...`, 'info');
+
+    const lastPromptResponse = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+    const parentTaskText = this.node.text;
+    const parentTaskDescription = this.node.description || '';
+
+    const llmGeneratedSubtasks = (this.node.children || [])
+      .filter(child => child.properties?.source === 'llm')
+      // Optional: filter further to only include children that seem to be from *this* specific subdivision.
+      // This is harder if children can be added/removed manually after LLM subdivision.
+      // For now, assume all 'llm' children are relevant to the last subdivision.
+      .map(child => `- ${child.text}${child.description ? ': ' + child.description : ''}`)
+      .join('\n');
+
+    if (!llmGeneratedSubtasks) {
+        this.notificationService.notify('No LLM-generated subtasks found for the last subdivision.', 'warn');
+        this.isFetchingRationale = false;
+        return;
+    }
+
+    const rationalePrompt = `The following parent task was given:
+Task: ${parentTaskText}
+${parentTaskDescription ? 'Description: ' + parentTaskDescription + '\n' : ''}
+You (the LLM) previously analyzed this parent task using the following prompt:
+--- PROMPT START ---
+${lastPromptResponse.prompt}
+--- PROMPT END ---
+
+And you generated the following subtasks as a result of that prompt:
+--- SUBTASKS START ---
+${llmGeneratedSubtasks}
+--- SUBTASKS END ---
+
+Please explain your reasoning and any assumptions you made when breaking down the parent task into these specific subtasks based on the original prompt. Provide a concise explanation.`;
+
+    // The context for rationale generation can be minimal or specific if needed.
+    // For now, using a generic context or an empty string.
+    const rationaleContext = `Rationale generation for task: "${parentTaskText}"`;
+
+    this.llmService.analyzeTask(rationalePrompt, rationaleContext).subscribe({
+      next: (rationaleResponse: string) => {
+        this.currentRationaleText = rationaleResponse;
+        this.showRationaleModal = true; // This will trigger a modal (to be implemented)
+
+        // Store the rationale in the last prompt_and_response entry
+        if (this.node.prompts_and_responses && this.node.prompts_and_responses.length > 0) {
+          const lastEntry = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+          lastEntry.rationale = {
+            prompt: rationalePrompt,
+            response: rationaleResponse,
+            timestamp: new Date().toISOString()
+          };
+          this.nodeUpdated.emit({ ...this.node }); // Emit to save the updated node
+        }
+
+        this.notificationService.notify('Rationale received.', 'success');
+      },
+      error: (error: any) => {
+        console.error('Error fetching rationale:', error);
+        this.notificationService.notify(`Error fetching rationale: ${error.message || 'Unknown error'}`, 'error');
+        this.isFetchingRationale = false;
+      },
+      complete: () => {
+        this.isFetchingRationale = false;
+      }
+    });
+  }
+
+  requestAlternativeBreakdown(): void {
+    this.showAlternativeHintInput = !this.showAlternativeHintInput; // Toggle display
+    if (!this.showAlternativeHintInput) {
+      this.alternativeHint = ''; // Clear hint if hiding input
+    }
+  }
+
+  getAlternativeBreakdown(event?: Event): void {
+    if (event) {
+      event.preventDefault(); // Prevent form submission if triggered by enter key
+    }
+
+    if (!this.node || !this.node.text) {
+      this.notificationService.notify('Cannot generate alternatives for an empty node.', 'warn');
+      return;
+    }
+
+    this.isFetchingAlternative = true;
+    this.currentAlternativeBreakdown = null;
+    this.lastAlternativePromptAndResponse = null; // Clear previous alternative P&R
+    this.notificationService.notify(`Fetching alternative breakdown for "${this.node.text}"...`, 'info');
+
+    let prompt = `Please provide an *alternative* set of 3-5 subtasks for the following main task.
+Original Task: "${this.node.text}"`;
+    if (this.node.description) {
+      prompt += `
+Original Task Description: "${this.node.description}"`;
+    }
+
+    // Incorporate the hint, if provided
+    if (this.alternativeHint && this.alternativeHint.trim().length > 0) {
+      prompt += `
+
+Please consider the following hint or focus: "${this.alternativeHint.trim()}" when generating the alternative subtasks.`;
+    } else {
+      prompt += `
+
+Explore a different perspective or structure than a typical breakdown.`;
+    }
+
+    prompt += `
+
+Format your response as a list with numbered items (1., 2., etc.) where each item has a title followed by a description on the next lines. Alternatively, you can provide the response in JSON format with an array of objects, each with 'title' and 'description' fields.`;
+
+    const currentPrompt = prompt; // Capture for storing later
+
+    this.llmService.analyzeTask(currentPrompt, `Context: Requesting alternative breakdown for task ID ${this.node.id}`).subscribe({
+      next: (response) => {
+        try {
+          const alternativeSubtasks = this.processLlmResponse(response, 'alt');
+
+          if (!alternativeSubtasks || alternativeSubtasks.length === 0) {
+            this.notificationService.notify('LLM did not return any subtasks for the alternative breakdown.', 'warn');
+            this.currentAlternativeBreakdown = []; // Empty array instead of null
+          } else {
+            this.currentAlternativeBreakdown = alternativeSubtasks;
+            this.notificationService.notify(`Received alternative breakdown for "${this.node.text}".`, 'success');
+          }
+          this.lastAlternativePromptAndResponse = { prompt: currentPrompt, response };
+          this.showAlternativeModal = true;
+
+        } catch (error) {
+          console.error('Error processing alternative LLM response:', error);
+          this.notificationService.notify('Error processing alternative LLM response.', 'error');
+          this.currentAlternativeBreakdown = null;
+        }
+      },
+      error: (error) => {
+        console.error('Error calling LLM service for alternatives:', error);
+        this.notificationService.notify(`Error fetching alternatives: ${error.message || 'Unknown error'}`, 'error');
+        this.isFetchingAlternative = false;
+        this.currentAlternativeBreakdown = null;
+      },
+      complete: () => {
+        this.isFetchingAlternative = false;
+        // Optional: Clear hint or hide input after successful fetch
+        // this.alternativeHint = '';
+        // this.showAlternativeHintInput = false;
       }
     });
   }
@@ -353,16 +546,34 @@ export class TaskNodeComponent {
     
     return context;
   }
+
+  canGetRationale(): boolean {
+    if (!this.node.prompts_and_responses || this.node.prompts_and_responses.length === 0) {
+      return false;
+    }
+    if (!this.node.children || !this.node.children.some(child => child.properties?.source === 'llm')) {
+      return false;
+    }
+    // Check if the *last* subdivision already has a rationale
+    const lastPromptResponse = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+    return !lastPromptResponse.rationale;
+  }
   
   private createSubdividePrompt(context: string): string {
-    return `Please analyze the following task and break it down into 3-5 logical subtasks. For each subtask, provide a clear title and a brief description.
+    let taskTypeSpecificPreamble = '';
+    if (this.node.taskType && this.node.taskType !== DEFAULT_TASK_TYPE_VALUE) {
+        const taskTypeLabel = getTaskTypeLabel(this.node.taskType) || this.node.taskType;
+        taskTypeSpecificPreamble = `This task is specifically designated as a "${taskTypeLabel}" type. `;
+    }
+
+    return `${taskTypeSpecificPreamble}Please analyze the following task (details included in the context below) and break it down into 3-5 logical subtasks. For each subtask, provide a clear title and a brief description.
 
 ${context}
 
 Please format your response as a list with numbered items (1., 2., etc.) where each item has a title followed by a description on the next lines. Alternatively, you can provide the response in JSON format with an array of objects, each with 'title' and 'description' fields.`;
   }
   
-  private processLlmResponse(response: string): TaskNode[] {
+  private processLlmResponse(response: string, idPrefix: string = ''): TaskNode[] {
     // First, try to see if the response is in JSON format
     try {
       if (response.includes('{') && response.includes('}')) {
@@ -376,7 +587,8 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
           if (Array.isArray(parsedJson)) {
             return parsedJson.map(item => this.createSubtask(
               item.title || item.name || item.text || 'Untitled Subtask',
-              item.description || item.desc || ''
+              item.description || item.desc || '',
+              idPrefix
             ));
           }
           
@@ -386,7 +598,8 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
             if (Array.isArray(tasks)) {
               return tasks.map(item => this.createSubtask(
                 item.title || item.name || item.text || 'Untitled Subtask',
-                item.description || item.desc || ''
+                item.description || item.desc || '',
+                idPrefix
               ));
             }
           }
@@ -408,7 +621,7 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
       if (line.match(/^\d+\.\s+|^-\s+|^\*\s+|^[A-Za-z0-9\s]+:/) && !line.match(/^Description:/i)) {
         // If we already have a title, save the previous subtask
         if (currentTitle) {
-          subtasks.push(this.createSubtask(currentTitle, currentDescription));
+          subtasks.push(this.createSubtask(currentTitle, currentDescription, idPrefix));
           currentDescription = '';
         }
         
@@ -422,31 +635,36 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
     
     // Add the last subtask if there is one
     if (currentTitle) {
-      subtasks.push(this.createSubtask(currentTitle, currentDescription));
+      subtasks.push(this.createSubtask(currentTitle, currentDescription, idPrefix));
     }
     
     // If we couldn't parse any subtasks, create some default ones
-    if (subtasks.length === 0) {
+    if (subtasks.length === 0 && idPrefix !== 'alt') { // Only add default for non-alternatives
       // Create 3 default subtasks
       subtasks.push(
-        this.createSubtask('Research', 'Gather information and resources needed for this task.'),
-        this.createSubtask('Implementation', 'Execute the core work required for this task.'),
-        this.createSubtask('Testing', 'Verify that the implementation meets the requirements.')
+        this.createSubtask('Research', 'Gather information and resources needed for this task.', idPrefix),
+        this.createSubtask('Implementation', 'Execute the core work required for this task.', idPrefix),
+        this.createSubtask('Testing', 'Verify that the implementation meets the requirements.', idPrefix)
       );
+    } else if (subtasks.length === 0 && idPrefix === 'alt') {
+      // If it's for alternatives and LLM returns nothing, return empty array, don't make defaults.
+      // The getAlternativeBreakdown method will handle notification for this.
+      return [];
     }
     
     return subtasks;
   }
   
-  private createSubtask(title: string, description: string): TaskNode {
+  private createSubtask(title: string, description: string, idPrefix: string = ''): TaskNode {
+    const baseId = idPrefix ? `${idPrefix}-${this.node.id}` : this.node.id;
     return {
-      id: `${this.node.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: `${baseId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       text: title,
       description: description,
       properties: {
         created: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
-        source: 'llm'
+        source: idPrefix === 'alt' ? 'llm-alternative' : 'llm' // Mark source
       }
     };
   }
@@ -559,5 +777,67 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
     
     // Show a success notification
     this.notificationService.notify(`Added new task "${siblingText.trim()}".`, 'success');
+  }
+
+  handleRationaleModalClose(): void {
+    this.showRationaleModal = false;
+    this.currentRationaleText = null;
+  }
+
+  handleAlternativeModalClose(): void {
+    this.showAlternativeModal = false;
+    // Optional: Decide if currentAlternativeBreakdown and lastAlternativePromptAndResponse should be cleared here
+    // For now, keeping them allows the modal to re-show the last fetched alternative if simply closed.
+  }
+
+  applyAlternativeBreakdown(tasksToApply: TaskNode[]): void {
+    if (!tasksToApply || tasksToApply.length === 0) {
+      this.notificationService.notify('No alternative tasks to apply.', 'warn');
+      this.showAlternativeModal = false; // Ensure modal closes
+      return;
+    }
+
+    // 1. Replace children
+    this.node.children = [...tasksToApply]; // Create new array reference
+
+    // 2. Update prompts_and_responses
+    if (this.lastAlternativePromptAndResponse) {
+      if (!this.node.prompts_and_responses) {
+        this.node.prompts_and_responses = [];
+      }
+      this.node.prompts_and_responses.push({
+        prompt: this.lastAlternativePromptAndResponse.prompt,
+        response: this.lastAlternativePromptAndResponse.response,
+        timestamp: new Date().toISOString(),
+        type: 'alternative-applied' // Custom type to denote this entry
+      });
+    } else {
+      this.notificationService.notify('Could not find the prompt/response for the applied alternative. History may be incomplete.', 'warn');
+    }
+
+    // 3. Update node properties
+    if (!this.node.properties) {
+      this.node.properties = {};
+    }
+    this.node.properties['lastUpdated'] = new Date().toISOString();
+    // Optional: could store the hint that led to this breakdown
+    // if (this.alternativeHint && this.alternativeHint.trim().length > 0) {
+    //   this.node.properties['lastAppliedAlternativeHint'] = this.alternativeHint.trim();
+    // }
+
+    // 4. Emit nodeUpdated
+    const updatedNode = { ...this.node };
+    this.node = updatedNode; // Update component's instance of the node
+    this.nodeUpdated.emit(updatedNode);
+
+    this.notificationService.notify(`Alternative breakdown applied to "${this.node.text}".`, 'success');
+
+    // 5. Clean up state
+    this.currentAlternativeBreakdown = null;
+    this.lastAlternativePromptAndResponse = null;
+    this.showAlternativeModal = false; // Ensure modal is closed
+    this.showAlternativeHintInput = false; // Hide hint input
+    this.alternativeHint = ''; // Clear hint
+    this.isExpanded = true; // Expand to show new children
   }
 }

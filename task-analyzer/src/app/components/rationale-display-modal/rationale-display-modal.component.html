@@ -1,0 +1,11 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h2>LLM Rationale</h2>
+    <div class="rationale-content">
+      <pre>{{ rationaleText }}</pre>
+    </div>
+    <div class="modal-actions">
+      <button (click)="onClose()" class="btn btn-primary">Close</button>
+    </div>
+  </div>
+</div>

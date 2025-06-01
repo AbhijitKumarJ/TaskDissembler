@@ -1,0 +1,75 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #333; // Dark theme background
+  color: #f1f1f1; // Light text
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 80%;
+  max-width: 700px;
+
+  h2 {
+    margin-top: 0;
+    color: #00acc1; // Accent color for heading
+  }
+
+  p {
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #2a2a2a; // Slightly lighter dark for textarea
+    color: #f1f1f1;
+    font-family: monospace;
+    font-size: 0.9rem;
+    box-sizing: border-box; // Ensure padding doesn't expand width
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .btn-primary {
+    background-color: #007bff; // Bootstrap primary blue
+    color: white;
+    &:hover {
+      background-color: #0056b3;
+    }
+  }
+
+  .btn-secondary {
+    background-color: #6c757d; // Bootstrap secondary gray
+    color: white;
+    &:hover {
+      background-color: #545b62;
+    }
+  }
+}

@@ -73,7 +73,20 @@
                     rows="2" 
                     [(ngModel)]="editingDescription"
                     placeholder="Enter description (optional)" ></textarea>
-          
+
+          <!-- Task Type Selector (within *ngIf="isEditing") -->
+          <div class="mb-2"> <!-- Adjusted margin to mb-2 to match other form elements -->
+            <label for="nodeTaskType-{{node.id}}" class="form-label small text-muted mb-1">Task Type:</label>
+            <select
+              id="nodeTaskType-{{node.id}}"
+              class="form-select form-select-sm"
+              [(ngModel)]="editingTaskType">
+              <option value="">-- Select Type (default: General) --</option>
+              <option *ngFor="let type of availableTaskTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
           
           <label class="form-label small text-muted mb-1">Properties (JSON)</label>
           <textarea class="form-control form-control-sm mb-2" 
@@ -153,6 +166,21 @@
             <span *ngIf="!isSubdividing"><i class="fas fa-sitemap"></i></span>
             <span *ngIf="isSubdividing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           </button>
+          <button
+            *ngIf="canGetRationale()"
+            (click)="getLlmRationale()"
+            class="btn btn-info btn-sm"
+            title="Get LLM Rationale for this breakdown"
+            [disabled]="isFetchingRationale || isSubdividing">
+            <i class="fas fa-comment-dots"></i> Rationale
+          </button>
+          <button
+            (click)="requestAlternativeBreakdown()"
+            class="btn btn-warning btn-sm"
+            title="Request an alternative breakdown"
+            [disabled]="isFetchingAlternative || isSubdividing">
+            <i class="fas fa-random"></i> Alt
+          </button>
           <button class="btn btn-outline-danger" 
                   (click)="deleteNode()" 
                   title="Delete task">
@@ -160,6 +188,26 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Alternative Hint Input Area -->
+  <div *ngIf="showAlternativeHintInput" class="mt-2 p-2 ms-3 me-3 border rounded bg-light-dark shadow-sm">
+    <label for="alternativeHint-{{node.id}}" class="form-label form-label-sm mb-1">Hint for alternative (optional):</label>
+    <div class="input-group input-group-sm">
+      <input
+        type="text"
+        id="alternativeHint-{{node.id}}"
+        class="form-control form-control-sm"
+        [(ngModel)]="alternativeHint"
+        (keydown.enter)="getAlternativeBreakdown($event)"
+        placeholder="e.g., 'more technical', 'simpler steps'">
+      <button
+        class="btn btn-success btn-sm"
+        (click)="getAlternativeBreakdown()"
+        [disabled]="isFetchingAlternative">
+        <i class="fas fa-check"></i> Fetch
+      </button>
     </div>
   </div>
   
@@ -185,4 +233,28 @@
       </app-task-node>
     </div>
   </div>
+
+  <!-- Prompt Edit Modal -->
+  <app-prompt-edit-modal
+    *ngIf="showPromptPreviewModal && promptForReview"
+    [prompt]="promptForReview"
+    (reviewOutcome)="handlePromptReview($event)">
+  </app-prompt-edit-modal>
+
+  <!-- Rationale Display Modal -->
+  <app-rationale-display-modal
+    *ngIf="showRationaleModal && currentRationaleText"
+    [rationaleText]="currentRationaleText"
+    (closeModal)="handleRationaleModalClose()">
+  </app-rationale-display-modal>
+
+  <!-- Alternative Breakdown Modal -->
+  <app-alternative-breakdown-modal
+    *ngIf="showAlternativeModal && currentAlternativeBreakdown"
+    [alternativeSubtasks]="currentAlternativeBreakdown"
+    [hintText]="alternativeHint ? alternativeHint : (lastAlternativePromptAndResponse ? 'Based on previous alternative prompt' : undefined)"
+    [originalTaskText]="node.text"
+    (closeModal)="handleAlternativeModalClose()"
+    (applyBreakdown)="applyAlternativeBreakdown($event)">
+  </app-alternative-breakdown-modal>
 </div>
