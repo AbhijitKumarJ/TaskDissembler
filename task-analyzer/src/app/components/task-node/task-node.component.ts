@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { TaskNode } from '../../models/task-node.interface';
 import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
+import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component';
 
 @Component({
   selector: 'app-task-node',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PromptEditModalComponent],
   templateUrl: './task-node.component.html',
   styleUrls: ['./task-node.component.scss']
 })
@@ -46,6 +47,8 @@ export class TaskNodeComponent {
   editingPropertiesJson: string = '';
   propertiesError: string | null = null;
   showProperties: boolean = false;
+  promptForReview: string | null = null;
+  showPromptPreviewModal: boolean = false;
   
   private llmService = inject(LlmService);
   private notificationService = inject(NotificationService);
@@ -220,56 +223,65 @@ export class TaskNodeComponent {
   subdivide(): void {
     if (this.isSubdividing) return;
     
-    this.isSubdividing = true;
-    this.notificationService.notify(`Subdividing task "${this.node.text}"...`, 'info');
-    
     // Get the project context from the root node
     const projectContext = this.getProjectContext();
     
     // Create a prompt for the LLM
-    const prompt = this.createSubdividePrompt(projectContext);
-    
-    // Call the LLM service
-    this.llmService.analyzeTask(prompt, projectContext).subscribe({
+    this.promptForReview = this.createSubdividePrompt(projectContext);
+    this.showPromptPreviewModal = true;
+    // The rest of the logic (setting isSubdividing, calling LLM, etc.)
+    // will be handled in handlePromptReview after user confirmation.
+  }
+
+  handlePromptReview(action: 'confirm' | 'cancel', editedPrompt?: string): void {
+    if (action === 'cancel') {
+      this.showPromptPreviewModal = false;
+      this.promptForReview = null;
+      this.isSubdividing = false; // Reset subdividing state
+      return;
+    }
+
+    // action === 'confirm'
+    this.showPromptPreviewModal = false;
+    const finalPrompt = (editedPrompt && editedPrompt.trim().length > 0) ? editedPrompt : this.promptForReview;
+
+    if (!finalPrompt) {
+      this.notificationService.notify('Prompt is empty. Subdivision cancelled.', 'warn');
+      this.isSubdividing = false;
+      return;
+    }
+
+    this.isSubdividing = true;
+    this.notificationService.notify(`Subdividing task "${this.node.text}"...`, 'info');
+    const projectContext = this.getProjectContext(); // Recapture context just in case
+
+    this.llmService.analyzeTask(finalPrompt, projectContext).subscribe({
       next: (response) => {
         try {
-          // Process the LLM response to extract subtasks
           const subtasks = this.processLlmResponse(response);
-          
-          // Create a copy of the node with the new subtasks
           const updatedNode = { ...this.node };
-          
-          // Initialize children array if it doesn't exist
+
           if (!updatedNode.children) {
             updatedNode.children = [];
           }
-          
-          // Add the new subtasks to the children array
           updatedNode.children = [...updatedNode.children, ...subtasks];
-          
-          // Store the prompt and response in the node's prompts_and_responses array
+
           if (!updatedNode.prompts_and_responses) {
             updatedNode.prompts_and_responses = [];
           }
-          
+          // Ensure the finalPrompt (potentially edited) is stored
           updatedNode.prompts_and_responses.push({
-            prompt,
+            prompt: finalPrompt,
             response
           });
-          
-          // Update the lastUpdated timestamp
+
           if (!updatedNode.properties) {
             updatedNode.properties = {};
           }
           updatedNode.properties['lastUpdated'] = new Date().toISOString();
           
-          // Update the node
           this.nodeUpdated.emit(updatedNode);
-          
-          // Expand the node to show the new subtasks
           this.isExpanded = true;
-          
-          // Show a success notification
           this.notificationService.notify(`Successfully subdivided "${this.node.text}" into ${subtasks.length} subtasks.`, 'success');
         } catch (error) {
           console.error('Error processing LLM response:', error);
@@ -278,23 +290,21 @@ export class TaskNodeComponent {
       },
       error: (error) => {
         console.error('Error calling LLM service:', error);
-        
-        // Check if the error is related to missing API key
         if (error.message && error.message.includes('API key is required')) {
           this.notificationService.notify('API key is required. Please go to LLM Settings to configure your API key.', 'error');
         } else {
           this.notificationService.notify(`Error calling LLM service: ${error.message || 'Unknown error'}. Please check your settings and try again.`, 'error');
         }
-        
-        // For demo purposes, we'll still add some default subtasks if the user confirms
-        if (confirm('Would you like to add default subtasks instead?')) {
-          this.addDefaultSubtasks();
-        }
+        // Optionally, offer default subtasks on error
+        // if (confirm('Would you like to add default subtasks instead?')) {
+        //   this.addDefaultSubtasks();
+        // }
       },
       complete: () => {
         this.isSubdividing = false;
       }
     });
+    this.promptForReview = null; // Clear the reviewed prompt
   }
   
   private addDefaultSubtasks(): void {

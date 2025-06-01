@@ -1,0 +1,11 @@
+<div class="modal-overlay">
+  <div class="modal-content">
+    <h2>Review and Edit Prompt</h2>
+    <p>You can make one-time modifications to the prompt before sending it to the LLM.</p>
+    <textarea [(ngModel)]="editablePrompt" rows="10" cols="80"></textarea>
+    <div class="modal-actions">
+      <button (click)="onConfirm()" class="btn btn-primary">Confirm and Subdivide</button>
+      <button (click)="onCancel()" class="btn btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>

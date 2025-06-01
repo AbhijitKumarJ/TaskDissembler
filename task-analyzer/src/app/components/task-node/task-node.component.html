@@ -185,4 +185,11 @@
       </app-task-node>
     </div>
   </div>
+
+  <!-- Prompt Edit Modal -->
+  <app-prompt-edit-modal
+    *ngIf="showPromptPreviewModal && promptForReview"
+    [prompt]="promptForReview"
+    (reviewOutcome)="handlePromptReview($event)">
+  </app-prompt-edit-modal>
 </div>
