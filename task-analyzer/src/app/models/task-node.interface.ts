@@ -2,6 +2,7 @@ export interface TaskNode {
   id: string;
   text: string;
   description?: string;
+  taskType?: string;
   children?: TaskNode[];
   properties?: { [key: string]: any };
   prompts_and_responses?: PromptResponsePair[];

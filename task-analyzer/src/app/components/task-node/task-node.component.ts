@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, inject, HostListener } from '@a
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaskNode } from '../../models/task-node.interface';
+import { TASK_TYPES, TaskType, DEFAULT_TASK_TYPE_VALUE, getTaskTypeLabel } from '../../models/task-types';
 import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
 import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component';
@@ -62,6 +63,9 @@ export class TaskNodeComponent {
   showAlternativeModal: boolean = false; // To trigger modal in a later step
   lastAlternativePromptAndResponse: { prompt: string, response: string } | null = null; // To store the P&R for the latest alternative
   
+  public readonly availableTaskTypes: TaskType[] = TASK_TYPES;
+  editingTaskType: string = '';
+
   private llmService = inject(LlmService);
   private notificationService = inject(NotificationService);
   
@@ -114,6 +118,7 @@ export class TaskNodeComponent {
   startEditing(): void {
     this.editingText = this.node.text;
     this.editingDescription = this.node.description || '';
+    this.editingTaskType = this.node.taskType || ''; // Initialize with node's taskType or empty string
     
     // Filter out system properties that shouldn't be edited directly
     const editableProperties = { ...this.node.properties };
@@ -159,6 +164,7 @@ export class TaskNodeComponent {
         ...this.node,
         text: this.editingText.trim(),
         description: this.editingDescription?.trim() || undefined,
+        taskType: this.editingTaskType === '' ? undefined : this.editingTaskType,
         properties: {
           ...parsedProperties,
           ...systemProperties
@@ -554,7 +560,13 @@ Format your response as a list with numbered items (1., 2., etc.) where each ite
   }
   
   private createSubdividePrompt(context: string): string {
-    return `Please analyze the following task and break it down into 3-5 logical subtasks. For each subtask, provide a clear title and a brief description.
+    let taskTypeSpecificPreamble = '';
+    if (this.node.taskType && this.node.taskType !== DEFAULT_TASK_TYPE_VALUE) {
+        const taskTypeLabel = getTaskTypeLabel(this.node.taskType) || this.node.taskType;
+        taskTypeSpecificPreamble = `This task is specifically designated as a "${taskTypeLabel}" type. `;
+    }
+
+    return `${taskTypeSpecificPreamble}Please analyze the following task (details included in the context below) and break it down into 3-5 logical subtasks. For each subtask, provide a clear title and a brief description.
 
 ${context}
 

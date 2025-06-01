@@ -73,7 +73,20 @@
                     rows="2" 
                     [(ngModel)]="editingDescription"
                     placeholder="Enter description (optional)" ></textarea>
-          
+
+          <!-- Task Type Selector (within *ngIf="isEditing") -->
+          <div class="mb-2"> <!-- Adjusted margin to mb-2 to match other form elements -->
+            <label for="nodeTaskType-{{node.id}}" class="form-label small text-muted mb-1">Task Type:</label>
+            <select
+              id="nodeTaskType-{{node.id}}"
+              class="form-select form-select-sm"
+              [(ngModel)]="editingTaskType">
+              <option value="">-- Select Type (default: General) --</option>
+              <option *ngFor="let type of availableTaskTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
           
           <label class="form-label small text-muted mb-1">Properties (JSON)</label>
           <textarea class="form-control form-control-sm mb-2" 

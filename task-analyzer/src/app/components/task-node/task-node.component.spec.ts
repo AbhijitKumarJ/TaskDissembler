@@ -7,6 +7,7 @@ import { NotificationService } from '../../services/notification.service';
 import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component'; // It's imported by TaskNodeComponent
 import { TaskNode } from '../../models/task-node.interface';
 import { of, throwError } from 'rxjs';
+import { TASK_TYPES, DEFAULT_TASK_TYPE_VALUE, getTaskTypeLabel, TaskType } from '../../models/task-types';
 
 // Mock services
 class MockLlmService {
@@ -482,6 +483,98 @@ describe('TaskNodeComponent', () => {
         fixture.detectChanges();
         component.handleAlternativeModalClose();
         expect(component.showAlternativeModal).toBeFalse();
+      });
+    });
+  });
+
+  describe('Granular Node Typing Functionality', () => {
+    // beforeEach might be needed if specific setup for these tests is required,
+    // otherwise, the main component's beforeEach should suffice.
+    // Ensure component.node is reset or set appropriately for each test.
+
+    describe('Editing and Saving Task Type', () => {
+      beforeEach(() => {
+        // Reset node for each test in this inner describe
+        component.node = { id: 'node-tasktype-test', text: 'Node for Type Test' };
+        fixture.detectChanges();
+      });
+
+      it('should initialize editingTaskType from node.taskType in startEditing()', () => {
+        component.node.taskType = 'development';
+        component.startEditing();
+        expect(component.editingTaskType).toBe('development');
+      });
+
+      it('should initialize editingTaskType to empty string if node.taskType is undefined in startEditing()', () => {
+        component.node.taskType = undefined;
+        component.startEditing();
+        expect(component.editingTaskType).toBe('');
+      });
+
+      it('should save selected taskType to node.taskType in saveEdit()', async () => {
+        spyOn(component.nodeUpdated, 'emit');
+        component.startEditing(); // Sets up editing mode
+        component.editingTaskType = 'testing';
+        component.editingText = 'Updated Text'; // Ensure text is valid for saving
+
+        await component.saveEdit(); // saveEdit is async
+
+        const emittedNode = (component.nodeUpdated.emit as jasmine.Spy).calls.mostRecent().args[0];
+        expect(emittedNode.taskType).toBe('testing');
+      });
+
+      it('should save taskType as undefined if editingTaskType is empty string (default option) in saveEdit()', async () => {
+        spyOn(component.nodeUpdated, 'emit');
+        component.node.taskType = 'development'; // Pre-existing type
+        component.startEditing(); // editingTaskType is now 'development'
+        component.editingTaskType = ''; // User selects "-- Select Type --"
+        component.editingText = 'Updated Text';
+
+        await component.saveEdit();
+
+        const emittedNode = (component.nodeUpdated.emit as jasmine.Spy).calls.mostRecent().args[0];
+        expect(emittedNode.taskType).toBeUndefined();
+      });
+    });
+
+    describe('Prompt Generation with Task Type (createSubdividePrompt)', () => {
+      const mockProjectContext = 'Project Context: Test Project';
+      let getProjectContextSpy: jasmine.Spy;
+
+      beforeEach(() => {
+         component.node = { id: 'node-prompt-type', text: 'Prompt Test Task' };
+         // Spy on the private method getProjectContext. Requires type assertion.
+         getProjectContextSpy = spyOn(component as any, 'getProjectContext').and.returnValue(mockProjectContext);
+         fixture.detectChanges();
+      });
+
+      it('should NOT include task type preamble if node.taskType is undefined', () => {
+        component.node.taskType = undefined;
+        const prompt = (component as any).createSubdividePrompt(getProjectContextSpy());
+        expect(prompt).not.toContain('This task is specifically designated as a');
+        expect(prompt).toContain('Please analyze the following task');
+      });
+
+      it('should NOT include task type preamble if node.taskType is DEFAULT_TASK_TYPE_VALUE (general)', () => {
+        component.node.taskType = DEFAULT_TASK_TYPE_VALUE; // 'general'
+        const prompt = (component as any).createSubdividePrompt(getProjectContextSpy());
+        expect(prompt).not.toContain('This task is specifically designated as a');
+        expect(prompt).toContain('Please analyze the following task');
+      });
+
+      it('should include task type preamble if node.taskType is specific (e.g., "development")', () => {
+        component.node.taskType = 'development';
+        const expectedLabel = getTaskTypeLabel('development');
+        const prompt = (component as any).createSubdividePrompt(getProjectContextSpy());
+        expect(prompt).toContain(`This task is specifically designated as a "${expectedLabel}" type.`);
+        expect(prompt).toContain('Please analyze the following task');
+        expect(prompt).toContain(mockProjectContext); // Ensure original context is still there
+      });
+
+      it('should include task type preamble using raw taskType value if label not found (fallback)', () => {
+        component.node.taskType = 'unknown_type_without_label';
+        const prompt = (component as any).createSubdividePrompt(getProjectContextSpy());
+        expect(prompt).toContain(`This task is specifically designated as a "unknown_type_without_label" type.`);
       });
     });
   });
