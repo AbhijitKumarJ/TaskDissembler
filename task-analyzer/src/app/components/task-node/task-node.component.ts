@@ -5,11 +5,12 @@ import { TaskNode } from '../../models/task-node.interface';
 import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
 import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component';
+import { RationaleDisplayModalComponent } from '../rationale-display-modal/rationale-display-modal.component';
 
 @Component({
   selector: 'app-task-node',
   standalone: true,
-  imports: [CommonModule, FormsModule, PromptEditModalComponent],
+  imports: [CommonModule, FormsModule, PromptEditModalComponent, RationaleDisplayModalComponent],
   templateUrl: './task-node.component.html',
   styleUrls: ['./task-node.component.scss']
 })
@@ -49,6 +50,9 @@ export class TaskNodeComponent {
   showProperties: boolean = false;
   promptForReview: string | null = null;
   showPromptPreviewModal: boolean = false;
+  isFetchingRationale: boolean = false;
+  showRationaleModal: boolean = false;
+  currentRationaleText: string | null = null;
   
   private llmService = inject(LlmService);
   private notificationService = inject(NotificationService);
@@ -306,6 +310,87 @@ export class TaskNodeComponent {
     });
     this.promptForReview = null; // Clear the reviewed prompt
   }
+
+  getLlmRationale(): void {
+    if (!this.canGetRationale()) {
+      this.notificationService.notify('Rationale cannot be fetched for this task at this moment.', 'warn');
+      return;
+    }
+
+    // Double check, though canGetRationale should cover this.
+    if (!this.node.prompts_and_responses || this.node.prompts_and_responses.length === 0) {
+      console.error('No prompts and responses found, cannot fetch rationale.');
+      return;
+    }
+
+    this.isFetchingRationale = true;
+    this.notificationService.notify(`Fetching rationale for "${this.node.text}"...`, 'info');
+
+    const lastPromptResponse = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+    const parentTaskText = this.node.text;
+    const parentTaskDescription = this.node.description || '';
+
+    const llmGeneratedSubtasks = (this.node.children || [])
+      .filter(child => child.properties?.source === 'llm')
+      // Optional: filter further to only include children that seem to be from *this* specific subdivision.
+      // This is harder if children can be added/removed manually after LLM subdivision.
+      // For now, assume all 'llm' children are relevant to the last subdivision.
+      .map(child => `- ${child.text}${child.description ? ': ' + child.description : ''}`)
+      .join('\n');
+
+    if (!llmGeneratedSubtasks) {
+        this.notificationService.notify('No LLM-generated subtasks found for the last subdivision.', 'warn');
+        this.isFetchingRationale = false;
+        return;
+    }
+
+    const rationalePrompt = `The following parent task was given:
+Task: ${parentTaskText}
+${parentTaskDescription ? 'Description: ' + parentTaskDescription + '\n' : ''}
+You (the LLM) previously analyzed this parent task using the following prompt:
+--- PROMPT START ---
+${lastPromptResponse.prompt}
+--- PROMPT END ---
+
+And you generated the following subtasks as a result of that prompt:
+--- SUBTASKS START ---
+${llmGeneratedSubtasks}
+--- SUBTASKS END ---
+
+Please explain your reasoning and any assumptions you made when breaking down the parent task into these specific subtasks based on the original prompt. Provide a concise explanation.`;
+
+    // The context for rationale generation can be minimal or specific if needed.
+    // For now, using a generic context or an empty string.
+    const rationaleContext = `Rationale generation for task: "${parentTaskText}"`;
+
+    this.llmService.analyzeTask(rationalePrompt, rationaleContext).subscribe({
+      next: (rationaleResponse: string) => {
+        this.currentRationaleText = rationaleResponse;
+        this.showRationaleModal = true; // This will trigger a modal (to be implemented)
+
+        // Store the rationale in the last prompt_and_response entry
+        if (this.node.prompts_and_responses && this.node.prompts_and_responses.length > 0) {
+          const lastEntry = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+          lastEntry.rationale = {
+            prompt: rationalePrompt,
+            response: rationaleResponse,
+            timestamp: new Date().toISOString()
+          };
+          this.nodeUpdated.emit({ ...this.node }); // Emit to save the updated node
+        }
+
+        this.notificationService.notify('Rationale received.', 'success');
+      },
+      error: (error: any) => {
+        console.error('Error fetching rationale:', error);
+        this.notificationService.notify(`Error fetching rationale: ${error.message || 'Unknown error'}`, 'error');
+        this.isFetchingRationale = false;
+      },
+      complete: () => {
+        this.isFetchingRationale = false;
+      }
+    });
+  }
   
   private addDefaultSubtasks(): void {
     // Create default subtasks for demonstration purposes
@@ -362,6 +447,18 @@ export class TaskNodeComponent {
     }
     
     return context;
+  }
+
+  canGetRationale(): boolean {
+    if (!this.node.prompts_and_responses || this.node.prompts_and_responses.length === 0) {
+      return false;
+    }
+    if (!this.node.children || !this.node.children.some(child => child.properties?.source === 'llm')) {
+      return false;
+    }
+    // Check if the *last* subdivision already has a rationale
+    const lastPromptResponse = this.node.prompts_and_responses[this.node.prompts_and_responses.length - 1];
+    return !lastPromptResponse.rationale;
   }
   
   private createSubdividePrompt(context: string): string {
@@ -569,5 +666,10 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
     
     // Show a success notification
     this.notificationService.notify(`Added new task "${siblingText.trim()}".`, 'success');
+  }
+
+  handleRationaleModalClose(): void {
+    this.showRationaleModal = false;
+    this.currentRationaleText = null;
   }
 }

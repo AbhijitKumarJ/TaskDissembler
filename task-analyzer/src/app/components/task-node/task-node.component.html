@@ -153,6 +153,14 @@
             <span *ngIf="!isSubdividing"><i class="fas fa-sitemap"></i></span>
             <span *ngIf="isSubdividing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           </button>
+          <button
+            *ngIf="canGetRationale()"
+            (click)="getLlmRationale()"
+            class="btn btn-info btn-sm"
+            title="Get LLM Rationale for this breakdown"
+            [disabled]="isFetchingRationale || isSubdividing">
+            <i class="fas fa-comment-dots"></i> Rationale
+          </button>
           <button class="btn btn-outline-danger" 
                   (click)="deleteNode()" 
                   title="Delete task">
@@ -192,4 +200,11 @@
     [prompt]="promptForReview"
     (reviewOutcome)="handlePromptReview($event)">
   </app-prompt-edit-modal>
+
+  <!-- Rationale Display Modal -->
+  <app-rationale-display-modal
+    *ngIf="showRationaleModal && currentRationaleText"
+    [rationaleText]="currentRationaleText"
+    (closeModal)="handleRationaleModalClose()">
+  </app-rationale-display-modal>
 </div>

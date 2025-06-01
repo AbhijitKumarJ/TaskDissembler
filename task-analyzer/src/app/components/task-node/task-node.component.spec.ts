@@ -6,7 +6,7 @@ import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
 import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component'; // It's imported by TaskNodeComponent
 import { TaskNode } from '../../models/task-node.interface';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 // Mock services
 class MockLlmService {
@@ -153,6 +153,143 @@ describe('TaskNodeComponent', () => {
         expect(notificationService.notify).toHaveBeenCalledWith('Prompt is empty. Subdivision cancelled.', 'warn');
         expect(llmService.analyzeTask).not.toHaveBeenCalled();
         expect(component.isSubdividing).toBeFalse();
+    });
+  });
+
+  describe('LLM Rationale Functionality', () => {
+    let mockLlmService: MockLlmService;
+    let mockNotificationService: MockNotificationService;
+
+    beforeEach(() => {
+      // Component instance is `component`
+      // Fixture instance is `fixture`
+      mockLlmService = TestBed.inject(LlmService) as unknown as MockLlmService;
+      mockNotificationService = TestBed.inject(NotificationService) as unknown as MockNotificationService;
+
+      // Reset node for each test
+      component.node = {
+        id: 'node1',
+        text: 'Parent Task for Rationale',
+        children: [
+          { id: 'child1', text: 'LLM Child 1', properties: { source: 'llm' } }
+        ],
+        prompts_and_responses: [
+          { prompt: 'Initial subdivide prompt', response: '1. LLM Child 1' }
+        ]
+      };
+      fixture.detectChanges();
+    });
+
+    describe('canGetRationale()', () => {
+      it('should return true if conditions are met', () => {
+        expect(component.canGetRationale()).toBeTrue();
+      });
+
+      it('should return false if prompts_and_responses is empty', () => {
+        component.node.prompts_and_responses = [];
+        expect(component.canGetRationale()).toBeFalse();
+      });
+
+      it('should return false if no LLM-generated children', () => {
+        component.node.children = [{ id: 'child2', text: 'Manual Child', properties: { source: 'manual' } }];
+        expect(component.canGetRationale()).toBeFalse();
+      });
+
+      it('should return false if children array is undefined or empty', () => {
+        component.node.children = undefined;
+        expect(component.canGetRationale()).toBeFalse();
+        component.node.children = [];
+        expect(component.canGetRationale()).toBeFalse();
+      });
+
+      it('should return false if last prompt_and_response already has rationale', () => {
+        component.node.prompts_and_responses![0].rationale = { prompt: 'p', response: 'r', timestamp: '' };
+        expect(component.canGetRationale()).toBeFalse();
+      });
+    });
+
+    describe('getLlmRationale()', () => {
+      it('should not proceed if canGetRationale() is false', () => {
+        spyOn(mockLlmService, 'analyzeTask');
+        spyOn(mockNotificationService, 'notify'); // Also spy on notify to check it's called with a warning
+        component.node.prompts_and_responses = []; // Make canGetRationale false
+        fixture.detectChanges();
+
+        component.getLlmRationale();
+
+        expect(mockLlmService.analyzeTask).not.toHaveBeenCalled();
+        expect(mockNotificationService.notify).toHaveBeenCalledWith('Rationale cannot be fetched for this task at this moment.', 'warn');
+      });
+
+      it('should call LlmService.analyzeTask with a constructed rationale prompt', () => {
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of('Mocked rationale response'));
+        component.getLlmRationale();
+        expect(mockLlmService.analyzeTask).toHaveBeenCalled();
+        const calledArgs = (mockLlmService.analyzeTask as jasmine.Spy).calls.mostRecent().args;
+        expect(calledArgs[0]).toContain('Please explain your reasoning');
+        expect(calledArgs[0]).toContain('Parent Task for Rationale'); // From node.text
+        expect(calledArgs[0]).toContain('LLM Child 1'); // From child.text
+        expect(calledArgs[0]).toContain('Initial subdivide prompt'); // From lastPnr.prompt
+      });
+
+      it('should set loading states and notify user during fetching', () => {
+        spyOn(mockNotificationService, 'notify');
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of('response').pipe()); // Keep it pending by not completing
+        component.getLlmRationale();
+        expect(component.isFetchingRationale).toBeTrue();
+        expect(mockNotificationService.notify).toHaveBeenCalledWith(
+          `Fetching rationale for "${component.node.text}"...`, 'info'
+        );
+      });
+
+      it('on successful response, should set rationale text, show modal, store rationale, and notify', (done) => {
+        const mockRationale = 'This is the detailed rationale.';
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of(mockRationale));
+        spyOn(mockNotificationService, 'notify');
+        spyOn(component.nodeUpdated, 'emit');
+
+        component.getLlmRationale();
+
+        fixture.whenStable().then(() => {
+          expect(component.currentRationaleText).toBe(mockRationale);
+          expect(component.showRationaleModal).toBeTrue();
+          expect(mockNotificationService.notify).toHaveBeenCalledWith('Rationale received.', 'success');
+
+          const emittedNode = (component.nodeUpdated.emit as jasmine.Spy).calls.mostRecent().args[0];
+          const lastPnr = emittedNode.prompts_and_responses[emittedNode.prompts_and_responses.length - 1];
+          expect(lastPnr.rationale).toBeDefined();
+          expect(lastPnr.rationale.response).toBe(mockRationale);
+          expect(lastPnr.rationale.prompt).toContain('Please explain your reasoning');
+
+          expect(component.isFetchingRationale).toBeFalse(); // Should be reset in complete()
+          done();
+        });
+      });
+
+      it('on error, should notify user and reset loading state', (done) => {
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(throwError(() => new Error('LLM Error')));
+        spyOn(mockNotificationService, 'notify');
+        component.getLlmRationale();
+
+        fixture.whenStable().then(() => {
+          expect(mockNotificationService.notify).toHaveBeenCalledWith('Error fetching rationale: LLM Error', 'error');
+          expect(component.isFetchingRationale).toBeFalse();
+          expect(component.showRationaleModal).toBeFalse(); // Ensure modal isn't shown on error
+          done();
+        });
+      });
+    });
+
+    describe('handleRationaleModalClose()', () => {
+      it('should hide modal and clear currentRationaleText', () => {
+        component.showRationaleModal = true;
+        component.currentRationaleText = 'Some rationale';
+        fixture.detectChanges();
+
+        component.handleRationaleModalClose();
+        expect(component.showRationaleModal).toBeFalse();
+        expect(component.currentRationaleText).toBeNull();
+      });
     });
   });
 });
