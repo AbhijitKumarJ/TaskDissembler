@@ -292,4 +292,197 @@ describe('TaskNodeComponent', () => {
       });
     });
   });
+
+  describe('Alternative Breakdown Functionality', () => {
+    let mockLlmService: MockLlmService; // Assuming MockLlmService is defined as in prior tests
+    let mockNotificationService: MockNotificationService;
+
+    beforeEach(() => {
+      // component and fixture are already available from parent describe
+      mockLlmService = TestBed.inject(LlmService) as unknown as MockLlmService;
+      mockNotificationService = TestBed.inject(NotificationService) as unknown as MockNotificationService;
+      component.node = { id: 'node-alt-test', text: 'Main Task for Alt', children: [] };
+      component.alternativeHint = '';
+      component.showAlternativeHintInput = false;
+      component.currentAlternativeBreakdown = null;
+      component.lastAlternativePromptAndResponse = null;
+      component.isFetchingAlternative = false;
+      component.showAlternativeModal = false;
+      fixture.detectChanges();
+    });
+
+    describe('requestAlternativeBreakdown()', () => {
+      it('should toggle showAlternativeHintInput', () => {
+        component.requestAlternativeBreakdown();
+        expect(component.showAlternativeHintInput).toBeTrue();
+        component.requestAlternativeBreakdown();
+        expect(component.showAlternativeHintInput).toBeFalse();
+      });
+
+      it('should clear alternativeHint if showAlternativeHintInput becomes false', () => {
+        component.showAlternativeHintInput = true;
+        component.alternativeHint = 'Test Hint';
+        fixture.detectChanges(); // Ensure initial state is set before action
+        component.requestAlternativeBreakdown(); // This will set showAlternativeHintInput to false
+        expect(component.alternativeHint).toBe('');
+      });
+    });
+
+    describe('getAlternativeBreakdown()', () => {
+      it('should not proceed if node text is empty', () => {
+        spyOn(mockLlmService, 'analyzeTask');
+        spyOn(mockNotificationService, 'notify');
+        component.node.text = '';
+        fixture.detectChanges();
+        component.getAlternativeBreakdown();
+        expect(mockLlmService.analyzeTask).not.toHaveBeenCalled();
+        expect(mockNotificationService.notify).toHaveBeenCalledWith('Cannot generate alternatives for an empty node.', 'warn');
+      });
+
+      it('should call LlmService.analyzeTask with hint if provided', () => {
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of('1. Alt Task'));
+        component.alternativeHint = 'Focus on technical';
+        component.getAlternativeBreakdown();
+        expect(mockLlmService.analyzeTask).toHaveBeenCalled();
+        const promptArg = (mockLlmService.analyzeTask as jasmine.Spy).calls.mostRecent().args[0];
+        expect(promptArg).toContain('Focus on technical');
+      });
+
+      it('should call LlmService.analyzeTask with generic phrase if no hint', () => {
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of('1. Alt Task'));
+        component.alternativeHint = '';
+        component.getAlternativeBreakdown();
+        expect(mockLlmService.analyzeTask).toHaveBeenCalled();
+        const promptArg = (mockLlmService.analyzeTask as jasmine.Spy).calls.mostRecent().args[0];
+        expect(promptArg).toContain('Explore a different perspective');
+      });
+
+      it('should process response, store alternative, and show modal on success', (done) => {
+        const mockLLMResponse = '1. Parsed Alt Task 1\nDescription for task 1';
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(of(mockLLMResponse));
+        // Spy on the actual processLlmResponse to ensure it's called correctly
+        spyOn(component, 'processLlmResponse').and.callThrough();
+
+        component.getAlternativeBreakdown();
+
+        fixture.whenStable().then(() => {
+          expect(component.processLlmResponse).toHaveBeenCalledWith(mockLLMResponse, 'alt');
+          expect(component.currentAlternativeBreakdown).toBeTruthy();
+          expect(component.currentAlternativeBreakdown?.length).toBeGreaterThan(0);
+          if(component.currentAlternativeBreakdown) { // type guard
+            expect(component.currentAlternativeBreakdown[0].text).toBe('Parsed Alt Task 1');
+            expect(component.currentAlternativeBreakdown[0].properties?.source).toBe('llm-alternative');
+          }
+          expect(component.lastAlternativePromptAndResponse).toBeTruthy();
+          expect(component.lastAlternativePromptAndResponse?.prompt).toContain('Main Task for Alt');
+          expect(component.lastAlternativePromptAndResponse?.response).toBe(mockLLMResponse);
+          expect(component.showAlternativeModal).toBeTrue();
+          expect(component.isFetchingAlternative).toBeFalse();
+          done();
+        });
+      });
+
+      it('should handle empty LLM response for alternatives gracefully', (done) => {
+         spyOn(mockLlmService, 'analyzeTask').and.returnValue(of('')); // Empty response
+         spyOn(mockNotificationService, 'notify');
+         component.getAlternativeBreakdown();
+         fixture.whenStable().then(() => {
+           expect(component.currentAlternativeBreakdown).toEqual([]);
+           expect(component.showAlternativeModal).toBeTrue(); // Still show modal to indicate attempt
+           expect(mockNotificationService.notify).toHaveBeenCalledWith('LLM did not return any subtasks for the alternative breakdown.', 'warn');
+           done();
+         });
+      });
+
+      it('should handle LLM error during fetching', (done) => {
+        spyOn(mockLlmService, 'analyzeTask').and.returnValue(throwError(() => new Error('LLM Fetch Error')));
+        spyOn(mockNotificationService, 'notify');
+        component.getAlternativeBreakdown();
+        fixture.whenStable().then(() => {
+          expect(mockNotificationService.notify).toHaveBeenCalledWith('Error fetching alternatives: LLM Fetch Error', 'error');
+          expect(component.isFetchingAlternative).toBeFalse();
+          expect(component.currentAlternativeBreakdown).toBeNull();
+          done();
+        });
+      });
+    });
+
+    describe('applyAlternativeBreakdown()', () => {
+      const altTasks: TaskNode[] = [{ id: 'alt-node-1', text: 'Applied Alt Task', properties: { source: 'llm-alternative' } }];
+
+      beforeEach(() => {
+        // Setup specific to applyAlternativeBreakdown tests
+        component.lastAlternativePromptAndResponse = { prompt: 'alt prompt', response: 'alt response' };
+        component.node.prompts_and_responses = []; // Clear for fresh test
+        fixture.detectChanges();
+      });
+
+      it('should not proceed if tasksToApply is null or empty, and notify', () => {
+        spyOn(component.nodeUpdated, 'emit');
+        spyOn(mockNotificationService, 'notify');
+
+        component.applyAlternativeBreakdown(null as any);
+        expect(component.nodeUpdated.emit).not.toHaveBeenCalled();
+        expect(mockNotificationService.notify).toHaveBeenCalledWith('No alternative tasks to apply.', 'warn');
+
+        component.applyAlternativeBreakdown([]);
+        expect(component.nodeUpdated.emit).not.toHaveBeenCalled();
+        expect(mockNotificationService.notify).toHaveBeenCalledWith('No alternative tasks to apply.', 'warn');
+      });
+
+      it('should replace node children with applied tasks', () => {
+        component.applyAlternativeBreakdown([...altTasks]);
+        expect(component.node.children).toEqual(altTasks);
+      });
+
+      it('should add to prompts_and_responses with type "alternative-applied"', () => {
+        component.applyAlternativeBreakdown([...altTasks]);
+        expect(component.node.prompts_and_responses?.length).toBe(1);
+        const pnrEntry = component.node.prompts_and_responses![0];
+        expect(pnrEntry.type).toBe('alternative-applied');
+        expect(pnrEntry.prompt).toBe('alt prompt');
+        expect(pnrEntry.timestamp).toBeDefined();
+      });
+
+      it('should update node lastUpdated property and emit nodeUpdated', () => {
+        spyOn(component.nodeUpdated, 'emit');
+        const originalLastUpdated = component.node.properties?.lastUpdated;
+
+        component.applyAlternativeBreakdown([...altTasks]);
+
+        expect(component.node.properties?.lastUpdated).toBeDefined();
+        if (originalLastUpdated) { // Only check if not equal if it was defined
+            expect(component.node.properties?.lastUpdated).not.toBe(originalLastUpdated);
+        }
+        expect(component.nodeUpdated.emit).toHaveBeenCalledWith(component.node);
+      });
+
+      it('should reset alternative-related state variables and expand node', () => {
+        component.currentAlternativeBreakdown = [...altTasks];
+        component.showAlternativeModal = true;
+        component.showAlternativeHintInput = true;
+        component.alternativeHint = 'some hint';
+        component.isExpanded = false;
+        fixture.detectChanges();
+
+        component.applyAlternativeBreakdown([...altTasks]);
+
+        expect(component.currentAlternativeBreakdown).toBeNull();
+        expect(component.lastAlternativePromptAndResponse).toBeNull();
+        expect(component.showAlternativeModal).toBeFalse();
+        expect(component.showAlternativeHintInput).toBeFalse();
+        expect(component.alternativeHint).toBe('');
+        expect(component.isExpanded).toBeTrue();
+      });
+    });
+
+    describe('handleAlternativeModalClose()', () => {
+      it('should set showAlternativeModal to false', () => {
+        component.showAlternativeModal = true;
+        fixture.detectChanges();
+        component.handleAlternativeModalClose();
+        expect(component.showAlternativeModal).toBeFalse();
+      });
+    });
+  });
 });

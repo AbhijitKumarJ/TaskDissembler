@@ -161,6 +161,13 @@
             [disabled]="isFetchingRationale || isSubdividing">
             <i class="fas fa-comment-dots"></i> Rationale
           </button>
+          <button
+            (click)="requestAlternativeBreakdown()"
+            class="btn btn-warning btn-sm"
+            title="Request an alternative breakdown"
+            [disabled]="isFetchingAlternative || isSubdividing">
+            <i class="fas fa-random"></i> Alt
+          </button>
           <button class="btn btn-outline-danger" 
                   (click)="deleteNode()" 
                   title="Delete task">
@@ -168,6 +175,26 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Alternative Hint Input Area -->
+  <div *ngIf="showAlternativeHintInput" class="mt-2 p-2 ms-3 me-3 border rounded bg-light-dark shadow-sm">
+    <label for="alternativeHint-{{node.id}}" class="form-label form-label-sm mb-1">Hint for alternative (optional):</label>
+    <div class="input-group input-group-sm">
+      <input
+        type="text"
+        id="alternativeHint-{{node.id}}"
+        class="form-control form-control-sm"
+        [(ngModel)]="alternativeHint"
+        (keydown.enter)="getAlternativeBreakdown($event)"
+        placeholder="e.g., 'more technical', 'simpler steps'">
+      <button
+        class="btn btn-success btn-sm"
+        (click)="getAlternativeBreakdown()"
+        [disabled]="isFetchingAlternative">
+        <i class="fas fa-check"></i> Fetch
+      </button>
     </div>
   </div>
   
@@ -207,4 +234,14 @@
     [rationaleText]="currentRationaleText"
     (closeModal)="handleRationaleModalClose()">
   </app-rationale-display-modal>
+
+  <!-- Alternative Breakdown Modal -->
+  <app-alternative-breakdown-modal
+    *ngIf="showAlternativeModal && currentAlternativeBreakdown"
+    [alternativeSubtasks]="currentAlternativeBreakdown"
+    [hintText]="alternativeHint ? alternativeHint : (lastAlternativePromptAndResponse ? 'Based on previous alternative prompt' : undefined)"
+    [originalTaskText]="node.text"
+    (closeModal)="handleAlternativeModalClose()"
+    (applyBreakdown)="applyAlternativeBreakdown($event)">
+  </app-alternative-breakdown-modal>
 </div>

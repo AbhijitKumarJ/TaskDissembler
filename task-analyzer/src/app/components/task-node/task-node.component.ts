@@ -6,11 +6,12 @@ import { LlmService } from '../../services/llm.service';
 import { NotificationService } from '../../services/notification.service';
 import { PromptEditModalComponent } from '../prompt-edit-modal/prompt-edit-modal.component';
 import { RationaleDisplayModalComponent } from '../rationale-display-modal/rationale-display-modal.component';
+import { AlternativeBreakdownModalComponent } from '../alternative-breakdown-modal/alternative-breakdown-modal.component';
 
 @Component({
   selector: 'app-task-node',
   standalone: true,
-  imports: [CommonModule, FormsModule, PromptEditModalComponent, RationaleDisplayModalComponent],
+  imports: [CommonModule, FormsModule, PromptEditModalComponent, RationaleDisplayModalComponent, AlternativeBreakdownModalComponent],
   templateUrl: './task-node.component.html',
   styleUrls: ['./task-node.component.scss']
 })
@@ -53,6 +54,13 @@ export class TaskNodeComponent {
   isFetchingRationale: boolean = false;
   showRationaleModal: boolean = false;
   currentRationaleText: string | null = null;
+  // For Alternative Breakdowns
+  showAlternativeHintInput: boolean = false;
+  alternativeHint: string = '';
+  isFetchingAlternative: boolean = false;
+  currentAlternativeBreakdown: TaskNode[] | null = null;
+  showAlternativeModal: boolean = false; // To trigger modal in a later step
+  lastAlternativePromptAndResponse: { prompt: string, response: string } | null = null; // To store the P&R for the latest alternative
   
   private llmService = inject(LlmService);
   private notificationService = inject(NotificationService);
@@ -276,7 +284,9 @@ export class TaskNodeComponent {
           // Ensure the finalPrompt (potentially edited) is stored
           updatedNode.prompts_and_responses.push({
             prompt: finalPrompt,
-            response
+            response,
+            timestamp: new Date().toISOString(),
+            type: 'subdivision'
           });
 
           if (!updatedNode.properties) {
@@ -391,6 +401,88 @@ Please explain your reasoning and any assumptions you made when breaking down th
       }
     });
   }
+
+  requestAlternativeBreakdown(): void {
+    this.showAlternativeHintInput = !this.showAlternativeHintInput; // Toggle display
+    if (!this.showAlternativeHintInput) {
+      this.alternativeHint = ''; // Clear hint if hiding input
+    }
+  }
+
+  getAlternativeBreakdown(event?: Event): void {
+    if (event) {
+      event.preventDefault(); // Prevent form submission if triggered by enter key
+    }
+
+    if (!this.node || !this.node.text) {
+      this.notificationService.notify('Cannot generate alternatives for an empty node.', 'warn');
+      return;
+    }
+
+    this.isFetchingAlternative = true;
+    this.currentAlternativeBreakdown = null;
+    this.lastAlternativePromptAndResponse = null; // Clear previous alternative P&R
+    this.notificationService.notify(`Fetching alternative breakdown for "${this.node.text}"...`, 'info');
+
+    let prompt = `Please provide an *alternative* set of 3-5 subtasks for the following main task.
+Original Task: "${this.node.text}"`;
+    if (this.node.description) {
+      prompt += `
+Original Task Description: "${this.node.description}"`;
+    }
+
+    // Incorporate the hint, if provided
+    if (this.alternativeHint && this.alternativeHint.trim().length > 0) {
+      prompt += `
+
+Please consider the following hint or focus: "${this.alternativeHint.trim()}" when generating the alternative subtasks.`;
+    } else {
+      prompt += `
+
+Explore a different perspective or structure than a typical breakdown.`;
+    }
+
+    prompt += `
+
+Format your response as a list with numbered items (1., 2., etc.) where each item has a title followed by a description on the next lines. Alternatively, you can provide the response in JSON format with an array of objects, each with 'title' and 'description' fields.`;
+
+    const currentPrompt = prompt; // Capture for storing later
+
+    this.llmService.analyzeTask(currentPrompt, `Context: Requesting alternative breakdown for task ID ${this.node.id}`).subscribe({
+      next: (response) => {
+        try {
+          const alternativeSubtasks = this.processLlmResponse(response, 'alt');
+
+          if (!alternativeSubtasks || alternativeSubtasks.length === 0) {
+            this.notificationService.notify('LLM did not return any subtasks for the alternative breakdown.', 'warn');
+            this.currentAlternativeBreakdown = []; // Empty array instead of null
+          } else {
+            this.currentAlternativeBreakdown = alternativeSubtasks;
+            this.notificationService.notify(`Received alternative breakdown for "${this.node.text}".`, 'success');
+          }
+          this.lastAlternativePromptAndResponse = { prompt: currentPrompt, response };
+          this.showAlternativeModal = true;
+
+        } catch (error) {
+          console.error('Error processing alternative LLM response:', error);
+          this.notificationService.notify('Error processing alternative LLM response.', 'error');
+          this.currentAlternativeBreakdown = null;
+        }
+      },
+      error: (error) => {
+        console.error('Error calling LLM service for alternatives:', error);
+        this.notificationService.notify(`Error fetching alternatives: ${error.message || 'Unknown error'}`, 'error');
+        this.isFetchingAlternative = false;
+        this.currentAlternativeBreakdown = null;
+      },
+      complete: () => {
+        this.isFetchingAlternative = false;
+        // Optional: Clear hint or hide input after successful fetch
+        // this.alternativeHint = '';
+        // this.showAlternativeHintInput = false;
+      }
+    });
+  }
   
   private addDefaultSubtasks(): void {
     // Create default subtasks for demonstration purposes
@@ -469,7 +561,7 @@ ${context}
 Please format your response as a list with numbered items (1., 2., etc.) where each item has a title followed by a description on the next lines. Alternatively, you can provide the response in JSON format with an array of objects, each with 'title' and 'description' fields.`;
   }
   
-  private processLlmResponse(response: string): TaskNode[] {
+  private processLlmResponse(response: string, idPrefix: string = ''): TaskNode[] {
     // First, try to see if the response is in JSON format
     try {
       if (response.includes('{') && response.includes('}')) {
@@ -483,7 +575,8 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
           if (Array.isArray(parsedJson)) {
             return parsedJson.map(item => this.createSubtask(
               item.title || item.name || item.text || 'Untitled Subtask',
-              item.description || item.desc || ''
+              item.description || item.desc || '',
+              idPrefix
             ));
           }
           
@@ -493,7 +586,8 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
             if (Array.isArray(tasks)) {
               return tasks.map(item => this.createSubtask(
                 item.title || item.name || item.text || 'Untitled Subtask',
-                item.description || item.desc || ''
+                item.description || item.desc || '',
+                idPrefix
               ));
             }
           }
@@ -515,7 +609,7 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
       if (line.match(/^\d+\.\s+|^-\s+|^\*\s+|^[A-Za-z0-9\s]+:/) && !line.match(/^Description:/i)) {
         // If we already have a title, save the previous subtask
         if (currentTitle) {
-          subtasks.push(this.createSubtask(currentTitle, currentDescription));
+          subtasks.push(this.createSubtask(currentTitle, currentDescription, idPrefix));
           currentDescription = '';
         }
         
@@ -529,31 +623,36 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
     
     // Add the last subtask if there is one
     if (currentTitle) {
-      subtasks.push(this.createSubtask(currentTitle, currentDescription));
+      subtasks.push(this.createSubtask(currentTitle, currentDescription, idPrefix));
     }
     
     // If we couldn't parse any subtasks, create some default ones
-    if (subtasks.length === 0) {
+    if (subtasks.length === 0 && idPrefix !== 'alt') { // Only add default for non-alternatives
       // Create 3 default subtasks
       subtasks.push(
-        this.createSubtask('Research', 'Gather information and resources needed for this task.'),
-        this.createSubtask('Implementation', 'Execute the core work required for this task.'),
-        this.createSubtask('Testing', 'Verify that the implementation meets the requirements.')
+        this.createSubtask('Research', 'Gather information and resources needed for this task.', idPrefix),
+        this.createSubtask('Implementation', 'Execute the core work required for this task.', idPrefix),
+        this.createSubtask('Testing', 'Verify that the implementation meets the requirements.', idPrefix)
       );
+    } else if (subtasks.length === 0 && idPrefix === 'alt') {
+      // If it's for alternatives and LLM returns nothing, return empty array, don't make defaults.
+      // The getAlternativeBreakdown method will handle notification for this.
+      return [];
     }
     
     return subtasks;
   }
   
-  private createSubtask(title: string, description: string): TaskNode {
+  private createSubtask(title: string, description: string, idPrefix: string = ''): TaskNode {
+    const baseId = idPrefix ? `${idPrefix}-${this.node.id}` : this.node.id;
     return {
-      id: `${this.node.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: `${baseId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       text: title,
       description: description,
       properties: {
         created: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
-        source: 'llm'
+        source: idPrefix === 'alt' ? 'llm-alternative' : 'llm' // Mark source
       }
     };
   }
@@ -671,5 +770,62 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
   handleRationaleModalClose(): void {
     this.showRationaleModal = false;
     this.currentRationaleText = null;
+  }
+
+  handleAlternativeModalClose(): void {
+    this.showAlternativeModal = false;
+    // Optional: Decide if currentAlternativeBreakdown and lastAlternativePromptAndResponse should be cleared here
+    // For now, keeping them allows the modal to re-show the last fetched alternative if simply closed.
+  }
+
+  applyAlternativeBreakdown(tasksToApply: TaskNode[]): void {
+    if (!tasksToApply || tasksToApply.length === 0) {
+      this.notificationService.notify('No alternative tasks to apply.', 'warn');
+      this.showAlternativeModal = false; // Ensure modal closes
+      return;
+    }
+
+    // 1. Replace children
+    this.node.children = [...tasksToApply]; // Create new array reference
+
+    // 2. Update prompts_and_responses
+    if (this.lastAlternativePromptAndResponse) {
+      if (!this.node.prompts_and_responses) {
+        this.node.prompts_and_responses = [];
+      }
+      this.node.prompts_and_responses.push({
+        prompt: this.lastAlternativePromptAndResponse.prompt,
+        response: this.lastAlternativePromptAndResponse.response,
+        timestamp: new Date().toISOString(),
+        type: 'alternative-applied' // Custom type to denote this entry
+      });
+    } else {
+      this.notificationService.notify('Could not find the prompt/response for the applied alternative. History may be incomplete.', 'warn');
+    }
+
+    // 3. Update node properties
+    if (!this.node.properties) {
+      this.node.properties = {};
+    }
+    this.node.properties['lastUpdated'] = new Date().toISOString();
+    // Optional: could store the hint that led to this breakdown
+    // if (this.alternativeHint && this.alternativeHint.trim().length > 0) {
+    //   this.node.properties['lastAppliedAlternativeHint'] = this.alternativeHint.trim();
+    // }
+
+    // 4. Emit nodeUpdated
+    const updatedNode = { ...this.node };
+    this.node = updatedNode; // Update component's instance of the node
+    this.nodeUpdated.emit(updatedNode);
+
+    this.notificationService.notify(`Alternative breakdown applied to "${this.node.text}".`, 'success');
+
+    // 5. Clean up state
+    this.currentAlternativeBreakdown = null;
+    this.lastAlternativePromptAndResponse = null;
+    this.showAlternativeModal = false; // Ensure modal is closed
+    this.showAlternativeHintInput = false; // Hide hint input
+    this.alternativeHint = ''; // Clear hint
+    this.isExpanded = true; // Expand to show new children
   }
 }
