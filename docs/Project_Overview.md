@@ -6,12 +6,18 @@ The Task Analyzer is a frontend-only Angular application designed to help users 
 
 ## Key Features
 
-- **Hierarchical Task Management:** Create and manage hierarchical task structures, allowing for a clear and organized breakdown of tasks.
-- **AI-Powered Task Breakdown:** Break down tasks into smaller, more manageable sub-tasks with the assistance of AI.
-- **Save/Load Functionality:** Save current task analyses as JSON files and load them back into the application for later use.
-- **Configurable LLM Providers:** Configure and switch between different Large Language Model (LLM) providers, including OpenAI, Groq, Ollama, and others.
-- **User-Friendly Interface:** Features a dark theme UI and responsive design for an improved user experience across various devices.
-- **Export Options:** Export your task analysis as a JSON file (as mentioned in the README's Usage section).
+- **Hierarchical Task Management:** Create and manage hierarchical task structures for in-depth analysis.
+- **Manual and AI-Powered Task Breakdown:** Create tasks manually or leverage LLMs to break down complex tasks into smaller, manageable sub-tasks.
+- **Dynamic Prompt Preview & Editing (Phase 2):** View and modify LLM prompts before they are sent, allowing for precise, one-time guidance for task subdivision.
+- **LLM Rationale (Phase 2):** After a breakdown, request an explanation from the LLM about its reasoning and assumptions for that specific set of subtasks.
+- **Alternative Breakdowns (Phase 2):** Request different sets of subtasks from the LLM for any given node, with the option to provide hints (e.g., "focus on technical aspects") to explore varied analytical perspectives.
+- **Granular Node Typing (Phase 2):** Optionally assign a specific "task type" (e.g., "Research", "Development") to a node before subdivision to receive more tailored LLM prompts and results.
+- **Save/Load Functionality:** Save complete task analyses as JSON files and load them back into the application.
+- **Configurable LLM Providers:** Configure and switch between different Large Language Model (LLM) providers (OpenAI, Groq, Ollama, Custom) with specific models and parameters.
+- **User-Friendly Interface:** Features a dark theme UI and responsive design for an improved user experience.
+- **Data Export:** Export your task analysis as a JSON file.
+
+For a detailed guide on how to use these features, please see the [User Guide](User_Guide.md).
 
 ## License
 

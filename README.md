@@ -4,11 +4,16 @@ A frontend-only Angular application for analyzing and breaking down complex task
 
 ## Features
 
-- Create and manage hierarchical task structures
-- Break down tasks into smaller, more manageable sub-tasks
-- Save and load task analyses as JSON files
-- Configure different LLM providers (OpenAI, Groq, Ollama, etc.)
-- Dark theme UI with responsive design
+- Create and manage hierarchical task structures for in-depth analysis.
+- Manual task creation and editing (text, description, custom properties).
+- LLM-powered task subdivision to break down complex tasks.
+- **Dynamic Prompt Preview & Editing:** View and modify LLM prompts before they are sent, allowing for precise, one-time guidance for task subdivision (US-P2-01).
+- **LLM Rationale:** After a breakdown, request an explanation from the LLM about its reasoning and assumptions for that specific set of subtasks (US-P2-02).
+- **Alternative Breakdowns:** Request different sets of subtasks from the LLM for any given node, with the option to provide hints (e.g., "focus on technical aspects") to explore varied analytical perspectives (US-P2-03).
+- **Granular Node Typing:** Optionally assign a specific "task type" (e.g., "Research", "Development", "Testing") to a node before subdivision to receive more tailored LLM prompts and results (US-P2-04).
+- Save and load complete task analyses as JSON files.
+- Configure various LLM providers (OpenAI, Groq, Ollama, Custom) with specific models and parameters.
+- User-friendly dark theme UI with a responsive design.
 
 ## Getting Started
 
@@ -41,6 +46,8 @@ A frontend-only Angular application for analyzing and breaking down complex task
 4. Open your browser and navigate to `http://localhost:4200/`
 
 ## Usage
+
+For detailed instructions on using all features, please refer to the [User Guide](docs/User_Guide.md).
 
 1. **Home Page**
    - Create a new task analysis project

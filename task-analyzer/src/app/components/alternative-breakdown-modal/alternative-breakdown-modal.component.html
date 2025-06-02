@@ -1,0 +1,27 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="overflow: scroll;">
+    <h2>Alternative Breakdown</h2>
+    <p *ngIf="originalTaskText">For task: <strong>{{ originalTaskText }}</strong></p>
+    <p *ngIf="hintText">Generated with hint: <em>"{{ hintText }}"</em></p>
+    <p *ngIf="!alternativeSubtasks || alternativeSubtasks.length === 0" class="text-muted">
+      No alternative subtasks were generated, or the LLM response was empty.
+    </p>
+
+    <ul *ngIf="alternativeSubtasks && alternativeSubtasks.length > 0" class="list-group mb-3">
+      <li *ngFor="let task of alternativeSubtasks" class="list-group-item">
+        <strong>{{ task.text }}</strong>
+        <p *ngIf="task.description" class="mb-0 text-muted"><small>{{ task.description }}</small></p>
+      </li>
+    </ul>
+
+    <div class="modal-actions">
+      <button
+        *ngIf="alternativeSubtasks && alternativeSubtasks.length > 0"
+        (click)="onApply()"
+        class="btn btn-primary">
+        Apply this Breakdown
+      </button>
+      <button (click)="onClose()" class="btn btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
