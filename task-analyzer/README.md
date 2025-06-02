@@ -75,9 +75,6 @@ src/app/
 - [Font Awesome](https://fontawesome.com/) - Icons
 - [RxJS](https://rxjs.dev/) - Reactive programming library
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
 
