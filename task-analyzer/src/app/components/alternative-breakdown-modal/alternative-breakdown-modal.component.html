@@ -1,5 +1,5 @@
 <div class="modal-overlay" (click)="onClose()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="overflow: scroll;">
     <h2>Alternative Breakdown</h2>
     <p *ngIf="originalTaskText">For task: <strong>{{ originalTaskText }}</strong></p>
     <p *ngIf="hintText">Generated with hint: <em>"{{ hintText }}"</em></p>

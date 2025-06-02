@@ -251,7 +251,8 @@ export class TaskNodeComponent {
     // will be handled in handlePromptReview after user confirmation.
   }
 
-  handlePromptReview(action: 'confirm' | 'cancel', editedPrompt?: string): void {
+  handlePromptReview(event: { action: 'confirm' | 'cancel', editedPrompt?: string }): void {
+    const { action, editedPrompt } = event;
     if (action === 'cancel') {
       this.showPromptPreviewModal = false;
       this.promptForReview = null;
@@ -264,7 +265,7 @@ export class TaskNodeComponent {
     const finalPrompt = (editedPrompt && editedPrompt.trim().length > 0) ? editedPrompt : this.promptForReview;
 
     if (!finalPrompt) {
-      this.notificationService.notify('Prompt is empty. Subdivision cancelled.', 'warn');
+      this.notificationService.notify('Prompt is empty. Subdivision cancelled.', 'info');
       this.isSubdividing = false;
       return;
     }
@@ -329,7 +330,7 @@ export class TaskNodeComponent {
 
   getLlmRationale(): void {
     if (!this.canGetRationale()) {
-      this.notificationService.notify('Rationale cannot be fetched for this task at this moment.', 'warn');
+      this.notificationService.notify('Rationale cannot be fetched for this task at this moment.', 'info');
       return;
     }
 
@@ -347,7 +348,7 @@ export class TaskNodeComponent {
     const parentTaskDescription = this.node.description || '';
 
     const llmGeneratedSubtasks = (this.node.children || [])
-      .filter(child => child.properties?.source === 'llm')
+      .filter(child => child.properties?.['source'] === 'llm')
       // Optional: filter further to only include children that seem to be from *this* specific subdivision.
       // This is harder if children can be added/removed manually after LLM subdivision.
       // For now, assume all 'llm' children are relevant to the last subdivision.
@@ -355,7 +356,7 @@ export class TaskNodeComponent {
       .join('\n');
 
     if (!llmGeneratedSubtasks) {
-        this.notificationService.notify('No LLM-generated subtasks found for the last subdivision.', 'warn');
+        this.notificationService.notify('No LLM-generated subtasks found for the last subdivision.', 'info');
         this.isFetchingRationale = false;
         return;
     }
@@ -421,7 +422,7 @@ Please explain your reasoning and any assumptions you made when breaking down th
     }
 
     if (!this.node || !this.node.text) {
-      this.notificationService.notify('Cannot generate alternatives for an empty node.', 'warn');
+      this.notificationService.notify('Cannot generate alternatives for an empty node.', 'info');
       return;
     }
 
@@ -460,7 +461,7 @@ Format your response as a list with numbered items (1., 2., etc.) where each ite
           const alternativeSubtasks = this.processLlmResponse(response, 'alt');
 
           if (!alternativeSubtasks || alternativeSubtasks.length === 0) {
-            this.notificationService.notify('LLM did not return any subtasks for the alternative breakdown.', 'warn');
+            this.notificationService.notify('LLM did not return any subtasks for the alternative breakdown.', 'info');
             this.currentAlternativeBreakdown = []; // Empty array instead of null
           } else {
             this.currentAlternativeBreakdown = alternativeSubtasks;
@@ -551,7 +552,7 @@ Format your response as a list with numbered items (1., 2., etc.) where each ite
     if (!this.node.prompts_and_responses || this.node.prompts_and_responses.length === 0) {
       return false;
     }
-    if (!this.node.children || !this.node.children.some(child => child.properties?.source === 'llm')) {
+    if (!this.node.children || !this.node.children.some(child => child.properties?.['source'] === 'llm')) {
       return false;
     }
     // Check if the *last* subdivision already has a rationale
@@ -792,7 +793,7 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
 
   applyAlternativeBreakdown(tasksToApply: TaskNode[]): void {
     if (!tasksToApply || tasksToApply.length === 0) {
-      this.notificationService.notify('No alternative tasks to apply.', 'warn');
+      this.notificationService.notify('No alternative tasks to apply.', 'info');
       this.showAlternativeModal = false; // Ensure modal closes
       return;
     }
@@ -812,7 +813,7 @@ Please format your response as a list with numbered items (1., 2., etc.) where e
         type: 'alternative-applied' // Custom type to denote this entry
       });
     } else {
-      this.notificationService.notify('Could not find the prompt/response for the applied alternative. History may be incomplete.', 'warn');
+      this.notificationService.notify('Could not find the prompt/response for the applied alternative. History may be incomplete.', 'info');
     }
 
     // 3. Update node properties
